@@ -1,0 +1,8 @@
+{
+  "main_api": "openai",
+  "oai_settings": {
+    "chat_completion_source": "openai",
+    "reverse_proxy": "http://example.invalid/v1/openai",
+    "claude_model": "gpt-4.1"
+  }
+}

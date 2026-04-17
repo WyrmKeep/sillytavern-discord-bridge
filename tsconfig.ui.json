@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/ui-extension",
+    "rootDir": "src/ui-extension"
+  },
+  "include": ["src/ui-extension/**/*.ts"]
+}

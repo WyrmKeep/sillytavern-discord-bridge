@@ -1,0 +1,8 @@
+{
+  "main_api": "kobold",
+  "oai_settings": {
+    "chat_completion_source": "claude",
+    "reverse_proxy": "http://example.invalid/v1/claude-proxy",
+    "claude_model": "claude-sonnet-4-6"
+  }
+}

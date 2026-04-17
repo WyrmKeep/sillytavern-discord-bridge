@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+logs/
+*.log
+packaged/
+.worktrees/
+worktrees/
+*.tsbuildinfo
+_discord-bridge/
+debug-transcripts/
+*.debug.json
+*.chat-dump.jsonl
+*.chat-dump.json

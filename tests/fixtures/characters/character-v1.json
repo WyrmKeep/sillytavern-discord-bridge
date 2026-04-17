@@ -1,0 +1,11 @@
+{
+  "name": "Bob",
+  "description": "Legacy card.",
+  "personality": "Plain.",
+  "scenario": "Legacy test.",
+  "first_mes": "Hello from Bob.",
+  "mes_example": "",
+  "creator_notes": "",
+  "system_prompt": "",
+  "post_history_instructions": ""
+}

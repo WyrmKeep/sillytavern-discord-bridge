@@ -1,0 +1,19 @@
+{
+  "main_api": "openai",
+  "oai_settings": {
+    "chat_completion_source": "claude",
+    "reverse_proxy": "http://example.invalid/v1/claude-proxy",
+    "proxy_password": "",
+    "claude_model": "claude-sonnet-4-6",
+    "openai_max_tokens": 512,
+    "temp_openai": 0.7,
+    "top_p_openai": 0.9,
+    "top_k_openai": 40,
+    "stream_openai": true,
+    "assistant_prefill": "Assistant prefill",
+    "use_sysprompt": true,
+    "reasoning_effort": "medium",
+    "verbosity": "high",
+    "stop_sequences": ["</END>"]
+  }
+}
