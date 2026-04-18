@@ -1,4 +1,4 @@
-async function F() {
+async function S() {
   const e = await fetch("/api/plugins/discord-bridge/status");
   if (!e.ok)
     throw new Error(`Bridge status failed: ${e.status}`);
@@ -8,34 +8,34 @@ async function U() {
   const e = await fetch("/api/plugins/discord-bridge/config");
   if (!e.ok)
     throw new Error(`Bridge config failed: ${e.status}`);
-  return f(await e.json());
+  return u(await e.json());
 }
-async function S(e) {
+async function k(e) {
   const t = await fetch("/api/plugins/discord-bridge/config", {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ config: e })
   });
   if (!t.ok)
-    throw new Error(await v(t, "Bridge config save failed"));
-  return f(await t.json());
+    throw new Error(await w(t, "Bridge config save failed"));
+  return u(await t.json());
 }
-async function k(e) {
+async function x(e) {
   const t = await fetch("/api/plugins/discord-bridge/secrets", {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(e)
   });
   if (!t.ok)
-    throw new Error(await v(t, "Bridge secrets save failed"));
-  return f(await t.json());
+    throw new Error(await w(t, "Bridge secrets save failed"));
+  return u(await t.json());
 }
-function f(e) {
+function u(e) {
   if (typeof e != "object" || e === null || !("config" in e) || typeof e.config != "object" || e.config === null)
     throw new Error("Server plugin needs update: /config did not return bridge settings.");
   return e;
 }
-async function v(e, t) {
+async function w(e, t) {
   try {
     const a = await e.json();
     if (typeof a.reason == "string" && a.reason)
@@ -44,7 +44,7 @@ async function v(e, t) {
   }
   return `${t}: ${e.status}`;
 }
-function I(e) {
+function m(e) {
   return {
     enabled: e.enabled,
     sillyTavernUserHandle: e.sillyTavernUserHandle,
@@ -58,7 +58,7 @@ function I(e) {
     conversationTitleFormat: e.behavior.conversationTitleFormat
   };
 }
-function x(e, t) {
+function D(e, t) {
   return {
     ...e,
     enabled: t.enabled,
@@ -68,12 +68,12 @@ function x(e, t) {
       clientId: t.clientId.trim(),
       guildId: t.guildId.trim(),
       forumChannelId: t.forumChannelId.trim(),
-      defaultForumTagIds: u(t.defaultForumTagIds)
+      defaultForumTagIds: f(t.defaultForumTagIds)
     },
     access: {
       ...e.access,
-      allowlistedUserIds: u(t.allowlistedUserIds),
-      adminUserIds: u(t.adminUserIds)
+      allowlistedUserIds: f(t.allowlistedUserIds),
+      adminUserIds: f(t.adminUserIds)
     },
     defaults: {
       ...e.defaults,
@@ -85,7 +85,7 @@ function x(e, t) {
     }
   };
 }
-function u(e) {
+function f(e) {
   return [
     ...new Set(
       e.split(/[\s,]+/u).map((t) => t.trim()).filter(Boolean)
@@ -93,22 +93,22 @@ function u(e) {
   ];
 }
 const B = "extensions_settings2";
-async function D(e = {}) {
+async function E(e = {}) {
   const t = e.documentRef ?? globalThis.document, a = (t == null ? void 0 : t.getElementById(B)) ?? null;
-  return a ? (await E(a, e), "mounted") : "missing-container";
+  return a ? (await j(a, e), "mounted") : "missing-container";
 }
-async function E(e, t = {}) {
-  const a = await j(t.renderTemplate).catch(() => {
+async function j(e, t = {}) {
+  const a = await A(t.renderTemplate).catch(() => {
   });
-  e.insertAdjacentHTML("beforeend", a ?? A());
-  const n = await (t.fetchStatus ?? F)().catch(() => ({ ok: !1 })), d = e.querySelector("[data-status]");
-  d && (d.textContent = n.ok ? "Plugin reachable" : "Plugin unavailable"), H(e, t);
+  e.insertAdjacentHTML("beforeend", a ?? H());
+  const i = await (t.fetchStatus ?? S)().catch(() => ({ ok: !1 })), r = e.querySelector("[data-status]");
+  r && (r.textContent = i.ok ? "Plugin reachable" : "Plugin unavailable"), L(e, t);
 }
-async function j(e) {
+async function A(e) {
   if (e)
     return e();
 }
-function A() {
+function H() {
   return `
     <div id="discord-bridge-settings" class="discord-bridge-settings">
       <div class="inline-drawer">
@@ -121,53 +121,53 @@ function A() {
             <span>Server plugin</span>
             <span data-status>Checking status...</span>
           </div>
-          <form class="discord-bridge-form" data-config-form>
-            <label>
+          <form class="discord-bridge-form" data-config-form onsubmit="return false">
+            <div class="discord-bridge-checkbox">
               <input type="checkbox" data-field="enabled" />
-              Enable Discord bridge
-            </label>
-            <label>
-              SillyTavern user handle
+              <label>Enable Discord bridge</label>
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">SillyTavern user handle</label>
               <input type="text" data-field="sillyTavernUserHandle" autocomplete="off" />
-            </label>
-            <label>
-              Discord client ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord client ID</label>
               <input type="text" data-field="clientId" autocomplete="off" />
-            </label>
-            <label>
-              Discord guild ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord guild ID</label>
               <input type="text" data-field="guildId" autocomplete="off" />
-            </label>
-            <label>
-              Discord forum channel ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord forum channel ID</label>
               <input type="text" data-field="forumChannelId" autocomplete="off" />
-            </label>
-            <label>
-              Required/default forum tag IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Required/default forum tag IDs</label>
               <textarea data-field="defaultForumTagIds" rows="2"></textarea>
-            </label>
-            <label>
-              Allowed Discord user IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Allowed Discord user IDs</label>
               <textarea data-field="allowlistedUserIds" rows="2"></textarea>
-            </label>
-            <label>
-              Admin Discord user IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Admin Discord user IDs</label>
               <textarea data-field="adminUserIds" rows="2"></textarea>
-            </label>
-            <label>
-              Default character avatar file
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Default character avatar file</label>
               <input type="text" data-field="defaultCharacterAvatarFile" autocomplete="off" />
-            </label>
-            <label>
-              Conversation title format
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Conversation title format</label>
               <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
-            </label>
-            <label>
-              Discord bot token
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord bot token</label>
               <input type="password" data-field="discordBotToken" autocomplete="new-password" placeholder="Leave blank to keep existing token" />
-            </label>
+            </div>
             <div class="discord-bridge-actions">
-              <button type="submit" class="menu_button">Save</button>
+              <button type="button" class="menu_button" data-save-config>Save</button>
               <span data-config-status>Loading config...</span>
             </div>
           </form>
@@ -176,75 +176,82 @@ function A() {
     </div>
   `;
 }
-function H(e, t) {
-  const a = e.querySelector("[data-config-form]"), n = e.querySelector("[data-config-status]");
+function L(e, t) {
+  const a = e.querySelector("[data-config-form]"), i = e.querySelector("[data-config-status]");
   if (!a)
     return;
-  let d;
-  const w = t.fetchConfig ?? U, T = t.saveConfig ?? S, y = t.saveSecrets ?? k;
-  w().then((s) => {
-    d = s.config, b(a, I(s.config)), i(a, "discordBotToken", ""), o(n, `Token ${s.secrets.discordBotToken ?? "<missing>"}`);
-  }).catch((s) => {
-    o(n, p(s));
-  }), a.addEventListener("submit", (s) => {
-    if (s.preventDefault(), !d) {
-      o(n, "Config not loaded");
+  const r = a.querySelector("[data-save-config]");
+  let o;
+  const T = t.fetchConfig ?? U, y = t.saveConfig ?? k, C = t.saveSecrets ?? x;
+  T().then((d) => {
+    o = d.config, I(a, m(d.config)), n(a, "discordBotToken", ""), l(i, `Token ${d.secrets.discordBotToken ?? "<missing>"}`);
+  }).catch((d) => {
+    l(i, p(d));
+  });
+  const g = () => {
+    if (!o) {
+      l(i, "Config not loaded");
       return;
     }
     (async () => {
       try {
-        o(n, "Saving...");
-        const c = x(d, L(a)), C = await T(c), g = r(a, "discordBotToken").trim(), m = g ? await y({ discordBotToken: g }) : C;
-        d = m.config, b(a, I(m.config)), i(a, "discordBotToken", ""), o(n, "Saved");
-      } catch (c) {
-        o(n, p(c));
+        l(i, "Saving...");
+        const d = D(o, P(a)), F = await y(d), b = s(a, "discordBotToken").trim(), v = b ? await C({ discordBotToken: b }) : F;
+        o = v.config, I(a, m(v.config)), n(a, "discordBotToken", ""), l(i, "Saved");
+      } catch (d) {
+        l(i, p(d));
       }
     })();
+  };
+  a.addEventListener("submit", (d) => {
+    d.preventDefault(), g();
+  }), r == null || r.addEventListener("click", () => {
+    g();
   });
 }
-function b(e, t) {
-  M(e, "enabled", t.enabled), i(e, "sillyTavernUserHandle", t.sillyTavernUserHandle), i(e, "clientId", t.clientId), i(e, "guildId", t.guildId), i(e, "forumChannelId", t.forumChannelId), i(e, "defaultForumTagIds", t.defaultForumTagIds), i(e, "allowlistedUserIds", t.allowlistedUserIds), i(e, "adminUserIds", t.adminUserIds), i(e, "defaultCharacterAvatarFile", t.defaultCharacterAvatarFile), i(e, "conversationTitleFormat", t.conversationTitleFormat);
+function I(e, t) {
+  V(e, "enabled", t.enabled), n(e, "sillyTavernUserHandle", t.sillyTavernUserHandle), n(e, "clientId", t.clientId), n(e, "guildId", t.guildId), n(e, "forumChannelId", t.forumChannelId), n(e, "defaultForumTagIds", t.defaultForumTagIds), n(e, "allowlistedUserIds", t.allowlistedUserIds), n(e, "adminUserIds", t.adminUserIds), n(e, "defaultCharacterAvatarFile", t.defaultCharacterAvatarFile), n(e, "conversationTitleFormat", t.conversationTitleFormat);
 }
-function L(e) {
+function P(e) {
   return {
-    enabled: P(e, "enabled"),
-    sillyTavernUserHandle: r(e, "sillyTavernUserHandle"),
-    clientId: r(e, "clientId"),
-    guildId: r(e, "guildId"),
-    forumChannelId: r(e, "forumChannelId"),
-    defaultForumTagIds: r(e, "defaultForumTagIds"),
-    allowlistedUserIds: r(e, "allowlistedUserIds"),
-    adminUserIds: r(e, "adminUserIds"),
-    defaultCharacterAvatarFile: r(e, "defaultCharacterAvatarFile"),
-    conversationTitleFormat: r(e, "conversationTitleFormat")
+    enabled: M(e, "enabled"),
+    sillyTavernUserHandle: s(e, "sillyTavernUserHandle"),
+    clientId: s(e, "clientId"),
+    guildId: s(e, "guildId"),
+    forumChannelId: s(e, "forumChannelId"),
+    defaultForumTagIds: s(e, "defaultForumTagIds"),
+    allowlistedUserIds: s(e, "allowlistedUserIds"),
+    adminUserIds: s(e, "adminUserIds"),
+    defaultCharacterAvatarFile: s(e, "defaultCharacterAvatarFile"),
+    conversationTitleFormat: s(e, "conversationTitleFormat")
   };
 }
-function l(e, t) {
+function c(e, t) {
   return e.querySelector(`[data-field="${t}"]`);
 }
-function r(e, t) {
+function s(e, t) {
   var a;
-  return ((a = l(e, t)) == null ? void 0 : a.value) ?? "";
+  return ((a = c(e, t)) == null ? void 0 : a.value) ?? "";
 }
-function i(e, t, a) {
-  const n = l(e, t);
-  n && (n.value = a);
+function n(e, t, a) {
+  const i = c(e, t);
+  i && (i.value = a);
 }
-function P(e, t) {
-  const a = l(e, t);
+function M(e, t) {
+  const a = c(e, t);
   return a instanceof HTMLInputElement ? a.checked : !1;
 }
-function M(e, t, a) {
-  const n = l(e, t);
-  n instanceof HTMLInputElement && (n.checked = a);
+function V(e, t, a) {
+  const i = c(e, t);
+  i instanceof HTMLInputElement && (i.checked = a);
 }
-function o(e, t) {
+function l(e, t) {
   e && (e.textContent = t);
 }
 function p(e) {
   return e instanceof Error ? e.message : "Config unavailable";
 }
 function h() {
-  D();
+  E();
 }
 document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", h, { once: !0 }) : h();
