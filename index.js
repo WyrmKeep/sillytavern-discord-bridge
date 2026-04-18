@@ -1,41 +1,56 @@
-async function S() {
+async function U() {
   const e = await fetch("/api/plugins/discord-bridge/status");
   if (!e.ok)
     throw new Error(`Bridge status failed: ${e.status}`);
   return await e.json();
 }
-async function U() {
+async function k() {
   const e = await fetch("/api/plugins/discord-bridge/config");
   if (!e.ok)
     throw new Error(`Bridge config failed: ${e.status}`);
-  return u(await e.json());
+  return f(await e.json());
 }
-async function k(e) {
+async function x(e) {
   const t = await fetch("/api/plugins/discord-bridge/config", {
     method: "PUT",
-    headers: { "content-type": "application/json" },
+    headers: await w(),
     body: JSON.stringify({ config: e })
   });
   if (!t.ok)
-    throw new Error(await w(t, "Bridge config save failed"));
-  return u(await t.json());
+    throw new Error(await y(t, "Bridge config save failed"));
+  return f(await t.json());
 }
-async function x(e) {
+async function H(e) {
   const t = await fetch("/api/plugins/discord-bridge/secrets", {
     method: "PUT",
-    headers: { "content-type": "application/json" },
+    headers: await w(),
     body: JSON.stringify(e)
   });
   if (!t.ok)
-    throw new Error(await w(t, "Bridge secrets save failed"));
-  return u(await t.json());
+    throw new Error(await y(t, "Bridge secrets save failed"));
+  return f(await t.json());
 }
-function u(e) {
+function f(e) {
   if (typeof e != "object" || e === null || !("config" in e) || typeof e.config != "object" || e.config === null)
     throw new Error("Server plugin needs update: /config did not return bridge settings.");
   return e;
 }
-async function w(e, t) {
+async function w() {
+  const e = new Headers(await D());
+  return e.set("content-type", "application/json"), e;
+}
+async function D() {
+  const e = globalThis.getRequestHeaders;
+  if (typeof e == "function")
+    return e();
+  try {
+    const a = await import("../../../../script.js");
+    return typeof a.getRequestHeaders == "function" ? a.getRequestHeaders() : {};
+  } catch {
+    return {};
+  }
+}
+async function y(e, t) {
   try {
     const a = await e.json();
     if (typeof a.reason == "string" && a.reason)
@@ -58,7 +73,7 @@ function m(e) {
     conversationTitleFormat: e.behavior.conversationTitleFormat
   };
 }
-function D(e, t) {
+function B(e, t) {
   return {
     ...e,
     enabled: t.enabled,
@@ -68,12 +83,12 @@ function D(e, t) {
       clientId: t.clientId.trim(),
       guildId: t.guildId.trim(),
       forumChannelId: t.forumChannelId.trim(),
-      defaultForumTagIds: f(t.defaultForumTagIds)
+      defaultForumTagIds: u(t.defaultForumTagIds)
     },
     access: {
       ...e.access,
-      allowlistedUserIds: f(t.allowlistedUserIds),
-      adminUserIds: f(t.adminUserIds)
+      allowlistedUserIds: u(t.allowlistedUserIds),
+      adminUserIds: u(t.adminUserIds)
     },
     defaults: {
       ...e.defaults,
@@ -85,30 +100,30 @@ function D(e, t) {
     }
   };
 }
-function f(e) {
+function u(e) {
   return [
     ...new Set(
       e.split(/[\s,]+/u).map((t) => t.trim()).filter(Boolean)
     )
   ];
 }
-const B = "extensions_settings2";
-async function E(e = {}) {
-  const t = e.documentRef ?? globalThis.document, a = (t == null ? void 0 : t.getElementById(B)) ?? null;
-  return a ? (await j(a, e), "mounted") : "missing-container";
+const E = "extensions_settings2";
+async function j(e = {}) {
+  const t = e.documentRef ?? globalThis.document, a = (t == null ? void 0 : t.getElementById(E)) ?? null;
+  return a ? (await A(a, e), "mounted") : "missing-container";
 }
-async function j(e, t = {}) {
-  const a = await A(t.renderTemplate).catch(() => {
+async function A(e, t = {}) {
+  const a = await q(t.renderTemplate).catch(() => {
   });
-  e.insertAdjacentHTML("beforeend", a ?? H());
-  const i = await (t.fetchStatus ?? S)().catch(() => ({ ok: !1 })), r = e.querySelector("[data-status]");
+  e.insertAdjacentHTML("beforeend", a ?? P());
+  const i = await (t.fetchStatus ?? U)().catch(() => ({ ok: !1 })), r = e.querySelector("[data-status]");
   r && (r.textContent = i.ok ? "Plugin reachable" : "Plugin unavailable"), L(e, t);
 }
-async function A(e) {
+async function q(e) {
   if (e)
     return e();
 }
-function H() {
+function P() {
   return `
     <div id="discord-bridge-settings" class="discord-bridge-settings">
       <div class="inline-drawer">
@@ -182,7 +197,7 @@ function L(e, t) {
     return;
   const r = a.querySelector("[data-save-config]");
   let o;
-  const T = t.fetchConfig ?? U, y = t.saveConfig ?? k, C = t.saveSecrets ?? x;
+  const T = t.fetchConfig ?? k, C = t.saveConfig ?? x, F = t.saveSecrets ?? H;
   T().then((d) => {
     o = d.config, I(a, m(d.config)), n(a, "discordBotToken", ""), l(i, `Token ${d.secrets.discordBotToken ?? "<missing>"}`);
   }).catch((d) => {
@@ -196,7 +211,7 @@ function L(e, t) {
     (async () => {
       try {
         l(i, "Saving...");
-        const d = D(o, P(a)), F = await y(d), b = s(a, "discordBotToken").trim(), v = b ? await C({ discordBotToken: b }) : F;
+        const d = B(o, M(a)), S = await C(d), b = s(a, "discordBotToken").trim(), v = b ? await F({ discordBotToken: b }) : S;
         o = v.config, I(a, m(v.config)), n(a, "discordBotToken", ""), l(i, "Saved");
       } catch (d) {
         l(i, p(d));
@@ -212,9 +227,9 @@ function L(e, t) {
 function I(e, t) {
   V(e, "enabled", t.enabled), n(e, "sillyTavernUserHandle", t.sillyTavernUserHandle), n(e, "clientId", t.clientId), n(e, "guildId", t.guildId), n(e, "forumChannelId", t.forumChannelId), n(e, "defaultForumTagIds", t.defaultForumTagIds), n(e, "allowlistedUserIds", t.allowlistedUserIds), n(e, "adminUserIds", t.adminUserIds), n(e, "defaultCharacterAvatarFile", t.defaultCharacterAvatarFile), n(e, "conversationTitleFormat", t.conversationTitleFormat);
 }
-function P(e) {
+function M(e) {
   return {
-    enabled: M(e, "enabled"),
+    enabled: R(e, "enabled"),
     sillyTavernUserHandle: s(e, "sillyTavernUserHandle"),
     clientId: s(e, "clientId"),
     guildId: s(e, "guildId"),
@@ -237,7 +252,7 @@ function n(e, t, a) {
   const i = c(e, t);
   i && (i.value = a);
 }
-function M(e, t) {
+function R(e, t) {
   const a = c(e, t);
   return a instanceof HTMLInputElement ? a.checked : !1;
 }
@@ -252,6 +267,6 @@ function p(e) {
   return e instanceof Error ? e.message : "Config unavailable";
 }
 function h() {
-  E();
+  j();
 }
 document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", h, { once: !0 }) : h();
