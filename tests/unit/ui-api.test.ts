@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { fetchBridgeConfig, saveBridgeConfig } from '../../src/ui-extension/api.js';
+import { fetchBridgeConfig, saveBridgeConfig, saveBridgeSecrets } from '../../src/ui-extension/api.js';
 import { configToFormValues } from '../../src/ui-extension/settings-form.js';
 import { DEFAULT_CONFIG, parseBridgeConfig } from '../../src/server-plugin/config/schema.js';
 
@@ -31,6 +31,31 @@ describe('UI API', () => {
     );
 
     await expect(saveBridgeConfig(config)).rejects.toThrow(/admin access required/i);
+  });
+
+  test('includes SillyTavern request headers when saving config and secrets', async () => {
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            config,
+            secrets: { discordBotToken: '<present>' },
+          }),
+          { status: 200 },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('getRequestHeaders', () => ({ 'x-csrf-token': 'csrf-token' }));
+
+    await saveBridgeConfig(config);
+    await saveBridgeSecrets({ discordBotToken: 'token' });
+
+    const configHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    const secretsHeaders = new Headers(fetchMock.mock.calls[1]?.[1]?.headers);
+    expect(configHeaders.get('x-csrf-token')).toBe('csrf-token');
+    expect(configHeaders.get('content-type')).toBe('application/json');
+    expect(secretsHeaders.get('x-csrf-token')).toBe('csrf-token');
+    expect(secretsHeaders.get('content-type')).toBe('application/json');
   });
 
   test('accepts current config payloads', async () => {
