@@ -38,6 +38,9 @@ export const DEFAULT_CONFIG = {
     rejectNonAllowlistedUsers: 'silent',
     attachmentMode: 'ignore-with-note',
     conversationTitleFormat: '{{character}} - {{date}}',
+    showTypingIndicator: true,
+    processingReactionEmoji: '\u{23F3}',
+    errorReactionEmoji: '\u{274C}',
   },
 } as const;
 
@@ -86,6 +89,9 @@ export const bridgeConfigSchema = z
         .default('silent'),
       attachmentMode: z.literal('ignore-with-note').default('ignore-with-note'),
       conversationTitleFormat: nonEmptyString.default('{{character}} - {{date}}'),
+      showTypingIndicator: z.boolean().default(true),
+      processingReactionEmoji: z.string().trim().default('\u{23F3}'),
+      errorReactionEmoji: z.string().trim().default('\u{274C}'),
     }),
   })
   .transform((config) => ({

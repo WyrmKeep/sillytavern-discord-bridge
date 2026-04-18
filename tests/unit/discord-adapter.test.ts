@@ -73,4 +73,46 @@ describe('Discord adapter', () => {
       components: [],
     });
   });
+
+  test('sends typing indicators and manages reactions on thread messages', async () => {
+    const remove = vi.fn(async () => undefined);
+    const message = {
+      react: vi.fn(async () => undefined),
+      reactions: {
+        resolve: vi.fn(() => ({ users: { remove } })),
+      },
+    };
+    const thread = {
+      send: vi.fn(),
+      sendTyping: vi.fn(async () => undefined),
+      messages: {
+        fetch: vi.fn(async () => message),
+      },
+    };
+    const client = {
+      user: { id: 'bot-user' },
+      channels: {
+        fetch: vi.fn(async () => thread),
+      },
+    };
+    const adapter = createDiscordAdapter(client as never);
+
+    await adapter.startTyping?.('thread-1');
+    await adapter.addReaction?.({
+      threadId: 'thread-1',
+      messageId: 'user-message-1',
+      emoji: '\u{23F3}',
+    });
+    await adapter.removeReaction?.({
+      threadId: 'thread-1',
+      messageId: 'user-message-1',
+      emoji: '\u{23F3}',
+    });
+
+    expect(thread.sendTyping).toHaveBeenCalledTimes(1);
+    expect(thread.messages.fetch).toHaveBeenCalledWith('user-message-1');
+    expect(message.react).toHaveBeenCalledWith('\u{23F3}');
+    expect(message.reactions.resolve).toHaveBeenCalledWith('\u{23F3}');
+    expect(remove).toHaveBeenCalledWith('bot-user');
+  });
 });

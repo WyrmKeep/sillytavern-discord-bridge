@@ -77,12 +77,29 @@ export type BridgeDiscordApi = {
     content: string;
     components?: unknown;
   }): Promise<void>;
+  startTyping?(threadId: string): Promise<void>;
+  addReaction?(input: {
+    threadId: string;
+    messageId: string;
+    emoji: string;
+  }): Promise<void>;
+  removeReaction?(input: {
+    threadId: string;
+    messageId: string;
+    emoji: string;
+  }): Promise<void>;
+};
+
+export type ActivityTimers = {
+  setInterval(callback: () => void, milliseconds: number): unknown;
+  clearInterval(handle: unknown): void;
 };
 
 export type BridgeRuntimeDependencies = {
   paths?: BridgePaths;
   queue?: KeyedQueue;
   now?: () => Date;
+  activityTimers?: ActivityTimers;
   generateReply?: (input: {
     config: DiscordBridgeConfig;
     character: BridgeCharacter;
@@ -147,6 +164,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
   const paths = dependencies.paths ?? resolveDefaultBridgePaths();
   const queue = dependencies.queue ?? createKeyedQueue();
   const now = dependencies.now ?? (() => new Date());
+  const activityTimers = dependencies.activityTimers ?? defaultActivityTimers();
 
   return {
     listCharacters: async () => {
@@ -221,66 +239,79 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
       }
 
       const chatPath = chatFilePath(paths, config, state);
+      const activity = await startMessageActivityFeedback({
+        config,
+        discord: input.discord,
+        threadId: input.threadId,
+        messageId: input.discordMessageId,
+        timers: activityTimers,
+      });
       return queue.run(chatPath, async () => {
-        const loaded = await loadChatFile(chatPath);
-        const character = await resolveCharacter(paths, config, state.characterAvatarFile);
-        const bridgeMessageId = randomUUID();
-        const pendingAssistantDiscordMessageId = randomUUID();
-        const result = await runMessageGenerationFlow({
-          chat: loaded.chat,
-          user: {
-            discordUserId: input.discordUserId,
-            discordMessageId: input.discordMessageId,
-            discordThreadId: input.threadId,
-            promptName: profilePromptName(config, input.discordUserId, input.discordDisplayName),
-            content: input.content,
-            sendDate: now().toISOString(),
-          },
-          assistant: {
-            name: character.name,
-            bridgeMessageId,
-            discordMessageId: pendingAssistantDiscordMessageId,
-            sendDate: now().toISOString(),
-          },
-          generate: async () =>
-            dependencies.generateReply
-              ? dependencies.generateReply({ config, character, chat: loaded.chat })
-              : generateWithSillyTavernSettings(
-                paths,
-                config,
-                character,
-                loaded.chat,
-                input.discordUserId,
-                input.discordDisplayName,
-                {
-                  fetchImpl: dependencies.fetchImpl,
-                  sillyTavernBaseUrl: dependencies.sillyTavernBaseUrl,
-                },
-              ),
-        });
-        const sent = await sendAssistantReply(input.discord, input.threadId, bridgeMessageId, result.reply);
-        const assistant = findAssistantMessageByBridgeId(loaded.chat, bridgeMessageId);
-        if (assistant?.extra?.discord_bridge) {
-          assistant.extra.discord_bridge.discord_message_id = sent.messageId;
-        }
-        if (assistant?.swipe_info?.[0]?.extra?.discord_bridge) {
-          assistant.swipe_info[0].extra.discord_bridge.discord_message_id = sent.messageId;
-        }
-        await saveChatFile(chatPath, loaded.chat, loaded.fingerprint);
-        await updateState(paths, (bridgeState) => {
-          const nextState = bridgeState.conversations[input.threadId];
-          if (nextState) {
-            nextState.lastAssistantBridgeMessageId = bridgeMessageId;
-            nextState.lastAssistantDiscordMessageId = sent.messageId;
-            nextState.updatedAt = now().toISOString();
+        try {
+          const loaded = await loadChatFile(chatPath);
+          const character = await resolveCharacter(paths, config, state.characterAvatarFile);
+          const bridgeMessageId = randomUUID();
+          const pendingAssistantDiscordMessageId = randomUUID();
+          const result = await runMessageGenerationFlow({
+            chat: loaded.chat,
+            user: {
+              discordUserId: input.discordUserId,
+              discordMessageId: input.discordMessageId,
+              discordThreadId: input.threadId,
+              promptName: profilePromptName(config, input.discordUserId, input.discordDisplayName),
+              content: input.content,
+              sendDate: now().toISOString(),
+            },
+            assistant: {
+              name: character.name,
+              bridgeMessageId,
+              discordMessageId: pendingAssistantDiscordMessageId,
+              sendDate: now().toISOString(),
+            },
+            generate: async () =>
+              dependencies.generateReply
+                ? dependencies.generateReply({ config, character, chat: loaded.chat })
+                : generateWithSillyTavernSettings(
+                  paths,
+                  config,
+                  character,
+                  loaded.chat,
+                  input.discordUserId,
+                  input.discordDisplayName,
+                  {
+                    fetchImpl: dependencies.fetchImpl,
+                    sillyTavernBaseUrl: dependencies.sillyTavernBaseUrl,
+                  },
+                ),
+          });
+          const sent = await sendAssistantReply(input.discord, input.threadId, bridgeMessageId, result.reply);
+          const assistant = findAssistantMessageByBridgeId(loaded.chat, bridgeMessageId);
+          if (assistant?.extra?.discord_bridge) {
+            assistant.extra.discord_bridge.discord_message_id = sent.messageId;
           }
-        });
+          if (assistant?.swipe_info?.[0]?.extra?.discord_bridge) {
+            assistant.swipe_info[0].extra.discord_bridge.discord_message_id = sent.messageId;
+          }
+          await saveChatFile(chatPath, loaded.chat, loaded.fingerprint);
+          await updateState(paths, (bridgeState) => {
+            const nextState = bridgeState.conversations[input.threadId];
+            if (nextState) {
+              nextState.lastAssistantBridgeMessageId = bridgeMessageId;
+              nextState.lastAssistantDiscordMessageId = sent.messageId;
+              nextState.updatedAt = now().toISOString();
+            }
+          });
+          await activity.complete();
 
-        return {
-          kind: 'replied',
-          reply: result.reply,
-          assistantDiscordMessageId: sent.messageId,
-        };
+          return {
+            kind: 'replied',
+            reply: result.reply,
+            assistantDiscordMessageId: sent.messageId,
+          };
+        } catch (error) {
+          await activity.fail();
+          throw error;
+        }
       });
     },
     handleSwipe: async (input) => {
@@ -433,6 +464,94 @@ async function sendAssistantReply(
     await discord.sendThreadMessage({ threadId, content });
   }
   return first;
+}
+
+async function startMessageActivityFeedback(input: {
+  config: DiscordBridgeConfig;
+  discord: BridgeDiscordApi;
+  threadId: string;
+  messageId: string;
+  timers: ActivityTimers;
+}): Promise<{ complete(): Promise<void>; fail(): Promise<void> }> {
+  const processingEmoji = input.config.behavior.processingReactionEmoji.trim();
+  const errorEmoji = input.config.behavior.errorReactionEmoji.trim();
+  let intervalHandle: unknown;
+  let stopped = false;
+
+  if (input.config.behavior.showTypingIndicator && input.discord.startTyping) {
+    await ignoreActivityError(() => input.discord.startTyping?.(input.threadId) ?? Promise.resolve());
+    intervalHandle = input.timers.setInterval(() => {
+      void ignoreActivityError(() => input.discord.startTyping?.(input.threadId) ?? Promise.resolve());
+    }, 8000);
+  }
+
+  if (processingEmoji && input.discord.addReaction) {
+    await ignoreActivityError(() =>
+      input.discord.addReaction?.({
+        threadId: input.threadId,
+        messageId: input.messageId,
+        emoji: processingEmoji,
+      }) ?? Promise.resolve(),
+    );
+  }
+
+  const stopTyping = (): void => {
+    if (stopped) {
+      return;
+    }
+    stopped = true;
+    if (intervalHandle !== undefined) {
+      input.timers.clearInterval(intervalHandle);
+    }
+  };
+
+  const removeProcessingReaction = async (): Promise<void> => {
+    if (!processingEmoji || !input.discord.removeReaction) {
+      return;
+    }
+    await ignoreActivityError(() =>
+      input.discord.removeReaction?.({
+        threadId: input.threadId,
+        messageId: input.messageId,
+        emoji: processingEmoji,
+      }) ?? Promise.resolve(),
+    );
+  };
+
+  return {
+    complete: async () => {
+      stopTyping();
+      await removeProcessingReaction();
+    },
+    fail: async () => {
+      stopTyping();
+      await removeProcessingReaction();
+      if (errorEmoji && input.discord.addReaction) {
+        await ignoreActivityError(() =>
+          input.discord.addReaction?.({
+            threadId: input.threadId,
+            messageId: input.messageId,
+            emoji: errorEmoji,
+          }) ?? Promise.resolve(),
+        );
+      }
+    },
+  };
+}
+
+async function ignoreActivityError(action: () => Promise<void>): Promise<void> {
+  try {
+    await action();
+  } catch {
+    // Discord typing/reaction permissions are optional feedback, not part of generation correctness.
+  }
+}
+
+function defaultActivityTimers(): ActivityTimers {
+  return {
+    setInterval: (callback, milliseconds) => globalThis.setInterval(callback, milliseconds),
+    clearInterval: (handle) => globalThis.clearInterval(handle as ReturnType<typeof setInterval>),
+  };
 }
 
 async function readBridgeConfig(paths: BridgePaths): Promise<DiscordBridgeConfig> {

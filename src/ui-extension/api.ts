@@ -72,6 +72,9 @@ export type BridgeConfig = {
     rejectNonAllowlistedUsers: 'silent' | 'ephemeral-reply-for-commands';
     attachmentMode: 'ignore-with-note';
     conversationTitleFormat: string;
+    showTypingIndicator: boolean;
+    processingReactionEmoji: string;
+    errorReactionEmoji: string;
   };
 };
 

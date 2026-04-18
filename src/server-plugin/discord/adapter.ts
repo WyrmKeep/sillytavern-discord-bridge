@@ -1,6 +1,9 @@
 import type { BridgeDiscordApi } from '../bridge/runtime.js';
 
 export type DiscordJsClientLike = {
+  user?: {
+    id?: string;
+  } | null;
   channels: {
     fetch(id: string): Promise<any>;
   };
@@ -53,6 +56,30 @@ export function createDiscordAdapter(client: DiscordJsClientLike): BridgeDiscord
         ...(input.components !== undefined ? { components: input.components } : {}),
       });
     },
+    startTyping: async (threadId) => {
+      const thread = await fetchThread(client, threadId);
+      if (!thread.sendTyping) {
+        throw new Error(`Discord thread cannot send typing indicators: ${threadId}`);
+      }
+      await thread.sendTyping();
+    },
+    addReaction: async (input) => {
+      const message = await fetchThreadMessage(client, input.threadId, input.messageId);
+      if (!message.react) {
+        throw new Error(`Discord message cannot receive reactions: ${input.messageId}`);
+      }
+      await message.react(input.emoji);
+    },
+    removeReaction: async (input) => {
+      const message = await fetchThreadMessage(client, input.threadId, input.messageId);
+      const reaction = message.reactions?.resolve?.(input.emoji)
+        ?? message.reactions?.cache?.get?.(input.emoji);
+      const botUserId = client.user?.id;
+      if (!reaction?.users?.remove || !botUserId) {
+        return;
+      }
+      await reaction.users.remove(botUserId);
+    },
   };
 }
 
@@ -62,4 +89,21 @@ async function fetchThread(client: DiscordJsClientLike, threadId: string): Promi
     throw new Error(`Discord thread not found or cannot send messages: ${threadId}`);
   }
   return thread;
+}
+
+async function fetchThreadMessage(
+  client: DiscordJsClientLike,
+  threadId: string,
+  messageId: string,
+): Promise<any> {
+  const thread = await fetchThread(client, threadId);
+  if (!thread.messages?.fetch) {
+    throw new Error(`Discord thread cannot fetch messages: ${threadId}`);
+  }
+
+  const message = await thread.messages.fetch(messageId);
+  if (!message) {
+    throw new Error(`Discord message not found: ${messageId}`);
+  }
+  return message;
 }

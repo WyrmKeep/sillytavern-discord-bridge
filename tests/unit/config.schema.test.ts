@@ -101,4 +101,24 @@ describe('bridge config schema', () => {
 
     expect(config.discord.exposedCharacterTags).toEqual(['Discord', 'Bridge']);
   });
+
+  test('defaults activity feedback and allows blank reaction emoji values', () => {
+    const defaultConfig = parseBridgeConfig(DEFAULT_CONFIG);
+
+    expect(defaultConfig.behavior.showTypingIndicator).toBe(true);
+    expect(defaultConfig.behavior.processingReactionEmoji).toBe('\u{23F3}');
+    expect(defaultConfig.behavior.errorReactionEmoji).toBe('\u{274C}');
+
+    const config = parseBridgeConfig({
+      ...DEFAULT_CONFIG,
+      behavior: {
+        ...DEFAULT_CONFIG.behavior,
+        processingReactionEmoji: '   ',
+        errorReactionEmoji: '',
+      },
+    });
+
+    expect(config.behavior.processingReactionEmoji).toBe('');
+    expect(config.behavior.errorReactionEmoji).toBe('');
+  });
 });

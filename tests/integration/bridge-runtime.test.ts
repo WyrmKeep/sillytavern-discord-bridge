@@ -152,6 +152,119 @@ describe('bridge runtime', () => {
     });
   });
 
+  test('shows message activity feedback and cleans it up after a reply is sent', async () => {
+    const fixture = await createRuntimeFixture();
+    const activityTimers = createActivityTimers();
+    let resolveReply: (reply: string) => void = () => undefined;
+    const replyPromise = new Promise<string>((resolve) => {
+      resolveReply = resolve;
+    });
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => replyPromise,
+      activityTimers,
+    } as never);
+    const conversation = await runtime.startNewConversation({
+      discordUserId: 'user',
+      characterAvatarFile: 'Alice.json',
+      discord: fixture.discord,
+    });
+
+    const pending = runtime.handleThreadMessage({
+      threadId: conversation.threadId,
+      discordUserId: 'user',
+      discordMessageId: 'user-message-1',
+      content: 'Hello',
+      discord: fixture.discord,
+    });
+    await vi.waitFor(() => {
+      expect(fixture.discord.typingEvents).toEqual([conversation.threadId]);
+      expect(fixture.discord.addedReactions).toContainEqual({
+        threadId: conversation.threadId,
+        messageId: 'user-message-1',
+        emoji: '\u{23F3}',
+      });
+      expect(activityTimers.setInterval).toHaveBeenCalledWith(expect.any(Function), 8000);
+    });
+
+    activityTimers.fireAll();
+    expect(fixture.discord.typingEvents).toEqual([conversation.threadId, conversation.threadId]);
+
+    resolveReply('Hi from Claude.');
+    await pending;
+
+    expect(activityTimers.clearInterval).toHaveBeenCalledWith('timer-1');
+    expect(fixture.discord.removedReactions).toContainEqual({
+      threadId: conversation.threadId,
+      messageId: 'user-message-1',
+      emoji: '\u{23F3}',
+    });
+  });
+
+  test('clears typing feedback and marks the source message on generation errors', async () => {
+    const fixture = await createRuntimeFixture();
+    const activityTimers = createActivityTimers();
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => {
+        throw new Error('generation failed');
+      },
+      activityTimers,
+    } as never);
+    const conversation = await runtime.startNewConversation({
+      discordUserId: 'user',
+      characterAvatarFile: 'Alice.json',
+      discord: fixture.discord,
+    });
+
+    await expect(runtime.handleThreadMessage({
+      threadId: conversation.threadId,
+      discordUserId: 'user',
+      discordMessageId: 'user-message-1',
+      content: 'Hello',
+      discord: fixture.discord,
+    })).rejects.toThrow(/generation failed/i);
+
+    expect(activityTimers.clearInterval).toHaveBeenCalledWith('timer-1');
+    expect(fixture.discord.removedReactions).toContainEqual({
+      threadId: conversation.threadId,
+      messageId: 'user-message-1',
+      emoji: '\u{23F3}',
+    });
+    expect(fixture.discord.addedReactions).toContainEqual({
+      threadId: conversation.threadId,
+      messageId: 'user-message-1',
+      emoji: '\u{274C}',
+    });
+  });
+
+  test('does not let activity feedback permission errors block generation', async () => {
+    const fixture = await createRuntimeFixture();
+    fixture.discord.failActivityCalls = true;
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'Hi despite activity failures.',
+    });
+    const conversation = await runtime.startNewConversation({
+      discordUserId: 'user',
+      characterAvatarFile: 'Alice.json',
+      discord: fixture.discord,
+    });
+
+    const result = await runtime.handleThreadMessage({
+      threadId: conversation.threadId,
+      discordUserId: 'user',
+      discordMessageId: 'user-message-1',
+      content: 'Hello',
+      discord: fixture.discord,
+    });
+
+    expect(result).toMatchObject({ kind: 'replied', reply: 'Hi despite activity failures.' });
+  });
+
   test('regenerates an assistant message as a persisted swipe and edits Discord', async () => {
     const fixture = await createRuntimeFixture();
     let reply = 'First reply.';
@@ -350,6 +463,9 @@ async function createRuntimeFixture(options: {
         rejectNonAllowlistedUsers: 'silent',
         attachmentMode: 'ignore-with-note',
         conversationTitleFormat: '{{character}} - {{date}}',
+        showTypingIndicator: true,
+        processingReactionEmoji: '\u{23F3}',
+        errorReactionEmoji: '\u{274C}',
       },
     }),
   );
@@ -457,6 +573,10 @@ class FakeDiscordApi {
   }> = [];
   threadMessages: Array<{ threadId: string; content: string }> = [];
   editedMessages: Array<{ threadId: string; messageId: string; content: string }> = [];
+  typingEvents: string[] = [];
+  addedReactions: Array<{ threadId: string; messageId: string; emoji: string }> = [];
+  removedReactions: Array<{ threadId: string; messageId: string; emoji: string }> = [];
+  failActivityCalls = false;
   private messageCounter = 0;
 
   async createForumThread(input: {
@@ -479,4 +599,42 @@ class FakeDiscordApi {
     this.editedMessages.push(input);
     return undefined;
   }
+
+  async startTyping(threadId: string) {
+    if (this.failActivityCalls) {
+      throw new Error('missing typing permission');
+    }
+    this.typingEvents.push(threadId);
+  }
+
+  async addReaction(input: { threadId: string; messageId: string; emoji: string }) {
+    if (this.failActivityCalls) {
+      throw new Error('missing reaction permission');
+    }
+    this.addedReactions.push(input);
+  }
+
+  async removeReaction(input: { threadId: string; messageId: string; emoji: string }) {
+    if (this.failActivityCalls) {
+      throw new Error('missing reaction permission');
+    }
+    this.removedReactions.push(input);
+  }
+}
+
+function createActivityTimers() {
+  const callbacks: Array<() => void> = [];
+  const timers = {
+    setInterval: vi.fn((callback: () => void, _milliseconds: number) => {
+      callbacks.push(callback);
+      return `timer-${callbacks.length}`;
+    }),
+    clearInterval: vi.fn(),
+    fireAll: () => {
+      for (const callback of callbacks) {
+        callback();
+      }
+    },
+  };
+  return timers;
 }

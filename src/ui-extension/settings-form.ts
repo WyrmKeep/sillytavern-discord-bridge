@@ -18,6 +18,9 @@ export type SettingsFormValues = {
   includeCreatorNotes: boolean;
   includePostHistoryInstructions: boolean;
   conversationTitleFormat: string;
+  showTypingIndicator: boolean;
+  processingReactionEmoji: string;
+  errorReactionEmoji: string;
   profilesJson: string;
 };
 
@@ -40,6 +43,9 @@ export function configToFormValues(config: BridgeConfig): SettingsFormValues {
     includeCreatorNotes: config.defaults.includeCreatorNotes,
     includePostHistoryInstructions: config.defaults.includePostHistoryInstructions,
     conversationTitleFormat: config.behavior.conversationTitleFormat,
+    showTypingIndicator: config.behavior.showTypingIndicator,
+    processingReactionEmoji: config.behavior.processingReactionEmoji,
+    errorReactionEmoji: config.behavior.errorReactionEmoji,
     profilesJson: JSON.stringify(config.profiles, null, 2),
   };
 }
@@ -92,6 +98,9 @@ export function formValuesToConfig(
     behavior: {
       ...current.behavior,
       conversationTitleFormat: values.conversationTitleFormat.trim() || '{{character}} - {{date}}',
+      showTypingIndicator: values.showTypingIndicator,
+      processingReactionEmoji: values.processingReactionEmoji.trim(),
+      errorReactionEmoji: values.errorReactionEmoji.trim(),
     },
   };
 }

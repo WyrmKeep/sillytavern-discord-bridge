@@ -111,6 +111,9 @@ describe('UI settings panel', () => {
     expect(settingsRoot.html).toContain('data-field="maxHistoryMessages"');
     expect(settingsRoot.html).toContain('data-field="contextBudgetTokens"');
     expect(settingsRoot.html).toContain('data-field="maxReplyCharacters"');
+    expect(settingsRoot.html).toContain('data-field="showTypingIndicator"');
+    expect(settingsRoot.html).toContain('data-field="processingReactionEmoji"');
+    expect(settingsRoot.html).toContain('data-field="errorReactionEmoji"');
     expect(settingsRoot.html).toContain('data-field="profilesJson"');
   });
 });

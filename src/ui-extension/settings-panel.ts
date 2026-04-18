@@ -192,6 +192,20 @@ function fallbackSettingsTemplate(): string {
               <label class="discord-bridge-field-label">Conversation title format</label>
               <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
             </div>
+            <div class="discord-bridge-checkbox">
+              <input type="checkbox" data-field="showTypingIndicator" />
+              <label>Show Discord typing indicator</label>
+            </div>
+            <div class="discord-bridge-field-grid">
+              <div class="discord-bridge-field">
+                <label class="discord-bridge-field-label">Processing reaction emoji</label>
+                <input type="text" data-field="processingReactionEmoji" autocomplete="off" />
+              </div>
+              <div class="discord-bridge-field">
+                <label class="discord-bridge-field-label">Error reaction emoji</label>
+                <input type="text" data-field="errorReactionEmoji" autocomplete="off" />
+              </div>
+            </div>
             <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">Discord user profiles JSON</label>
               <textarea data-field="profilesJson" rows="5"></textarea>
@@ -289,6 +303,9 @@ function populateForm(form: HTMLFormElement, values: SettingsFormValues): void {
   setCheckedValue(form, 'includeCreatorNotes', values.includeCreatorNotes);
   setCheckedValue(form, 'includePostHistoryInstructions', values.includePostHistoryInstructions);
   setInputValue(form, 'conversationTitleFormat', values.conversationTitleFormat);
+  setCheckedValue(form, 'showTypingIndicator', values.showTypingIndicator);
+  setInputValue(form, 'processingReactionEmoji', values.processingReactionEmoji);
+  setInputValue(form, 'errorReactionEmoji', values.errorReactionEmoji);
   setInputValue(form, 'profilesJson', values.profilesJson);
 }
 
@@ -311,6 +328,9 @@ function readFormValues(form: HTMLFormElement): SettingsFormValues {
     includeCreatorNotes: getCheckedValue(form, 'includeCreatorNotes'),
     includePostHistoryInstructions: getCheckedValue(form, 'includePostHistoryInstructions'),
     conversationTitleFormat: getInputValue(form, 'conversationTitleFormat'),
+    showTypingIndicator: getCheckedValue(form, 'showTypingIndicator'),
+    processingReactionEmoji: getInputValue(form, 'processingReactionEmoji'),
+    errorReactionEmoji: getInputValue(form, 'errorReactionEmoji'),
     profilesJson: getInputValue(form, 'profilesJson'),
   };
 }
