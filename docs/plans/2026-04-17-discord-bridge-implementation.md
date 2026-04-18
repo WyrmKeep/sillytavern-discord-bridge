@@ -455,7 +455,7 @@ Request shaping rules:
 - Forward stop strings as `stop_sequences`.
 - Forward `top_k` when allowed by the active Claude 4.6 thinking/adaptive mode.
 - Apply current Claude 4.6 limited-sampling behavior: when `top_p < 1`, omit `temperature`; otherwise omit `top_p`.
-- Apply `reasoning_effort` and `verbosity` according to the ST-supported request shape for `claude-sonnet-4-6`.
+- Normalize `reasoning_effort` and `verbosity` for diagnostics, but do not send them to native Anthropic `/messages` unless a pinned ST contract proves a supported mapping.
 - Add `anthropic-beta` only when the active settings require it.
 - v1 does not support tools, web search, JSON schema forced tools, or streaming.
 
@@ -982,7 +982,7 @@ Additional required tests:
   - Keeps `mes === swipes[swipe_id]` after regenerate, previous, and next.
   - Persists and resolves a stable bridge assistant message ID in `extra.discord_bridge`.
 - `tests/unit/claude-reverse-proxy.test.ts`
-  - Forwards `assistant_prefill`, `use_sysprompt`, `stop_sequences`, `top_k`, `reasoning_effort`, and `verbosity` according to the documented v1 behavior.
+  - Forwards `assistant_prefill`, `use_sysprompt`, `stop_sequences`, and `top_k`; verifies `reasoning_effort` and `verbosity` are not sent to native Anthropic `/messages` without a supported mapping.
   - Applies Claude 4.6 request-shaping rules for `temperature` versus `top_p`.
   - Redacts failed response previews without leaking secrets or chat content.
 - `tests/unit/prompt-builder.test.ts`
@@ -1208,7 +1208,7 @@ Steps:
 
 - [ ] Write failing tests for prompt content and history trimming.
 - [ ] Write failing tests for Anthropic-compatible request construction.
-- [ ] Write failing tests for Claude 4.6 request shaping, including `assistant_prefill`, `use_sysprompt`, stop strings, `top_k`, `reasoning_effort`, `verbosity`, and limited sampling.
+- [ ] Write failing tests for Claude 4.6 request shaping, including `assistant_prefill`, `use_sysprompt`, stop strings, `top_k`, omitting unsupported `reasoning_effort` / `verbosity`, and limited sampling.
 - [ ] Implement prompt builder as bridge-owned intermediate ChatML-style messages.
 - [ ] Implement simple message-count token budget policy.
 - [ ] Implement reverse-proxy client.

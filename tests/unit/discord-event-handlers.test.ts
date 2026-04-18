@@ -11,6 +11,7 @@ function fakeRuntime(): BridgeRuntime & {
   startNewConversation: ReturnType<typeof vi.fn>;
   handleThreadMessage: ReturnType<typeof vi.fn>;
   handleSwipe: ReturnType<typeof vi.fn>;
+  setPersona: ReturnType<typeof vi.fn>;
 } {
   return {
     listCharacters: vi.fn(async () => [
@@ -49,6 +50,12 @@ function fakeRuntime(): BridgeRuntime & {
     })),
     handleThreadMessage: vi.fn(async () => ({ kind: 'replied' as const, reply: 'ok', assistantDiscordMessageId: 'msg-2' })),
     handleSwipe: vi.fn(async () => ({ kind: 'updated' as const, selectedIndex: 1, total: 2 })),
+    setPersona: vi.fn(async () => ({
+      enabled: true,
+      promptName: 'Rober',
+      displayName: 'Rober',
+      persona: 'A practical operator.',
+    })),
   };
 }
 
@@ -122,12 +129,14 @@ describe('Discord event handlers', () => {
       id: 'message-1',
       channelId: 'thread-1',
       content: 'Hello',
-      author: { id: 'user-1', bot: false },
+      author: { id: 'user-1', bot: false, username: 'rober' },
+      member: { displayName: 'Rober' },
     });
 
     expect(runtime.handleThreadMessage).toHaveBeenCalledWith({
       threadId: 'thread-1',
       discordUserId: 'user-1',
+      discordDisplayName: 'Rober',
       discordMessageId: 'message-1',
       content: 'Hello',
       discord,
@@ -154,6 +163,37 @@ describe('Discord event handlers', () => {
       customId: 'stb:v1:swipe_next:thread-1:bridge-1',
       discordUserId: 'user-1',
       discord,
+    });
+  });
+
+  test('routes /persona set to the runtime', async () => {
+    const runtime = fakeRuntime();
+    const client = fakeClient();
+    attachDiscordEventHandlers(client, runtime, discord);
+    const reply = vi.fn(async () => undefined);
+
+    await client.handlers.get('interactionCreate')?.({
+      isAutocomplete: () => false,
+      isChatInputCommand: () => true,
+      commandName: 'persona',
+      user: { id: 'user-1', username: 'rober' },
+      member: { displayName: 'Rober' },
+      options: {
+        getSubcommand: () => 'set',
+        getString: (name: string) => (name === 'name' ? 'Rober' : 'A practical operator.'),
+      },
+      reply,
+    });
+
+    expect(runtime.setPersona).toHaveBeenCalledWith({
+      discordUserId: 'user-1',
+      discordDisplayName: 'Rober',
+      displayName: 'Rober',
+      persona: 'A practical operator.',
+    });
+    expect(reply).toHaveBeenCalledWith({
+      content: 'Persona saved for Rober.',
+      ephemeral: true,
     });
   });
 });

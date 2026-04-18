@@ -50,12 +50,11 @@ describe('Claude reverse proxy request builder', () => {
         { role: 'user', content: 'Hello' },
         { role: 'assistant', content: 'Prefill' },
       ],
-      metadata: {
-        reasoning_effort: 'medium',
-        verbosity: 'high',
-      },
     });
     expect(request.body).not.toHaveProperty('temperature');
+    expect(request.body).not.toHaveProperty('metadata');
+    expect(request.body).not.toHaveProperty('reasoning_effort');
+    expect(request.body).not.toHaveProperty('verbosity');
     expect(request.headers).not.toHaveProperty('x-api-key');
   });
 

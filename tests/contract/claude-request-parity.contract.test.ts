@@ -31,5 +31,8 @@ describe('Claude request parity contract', () => {
     expect(request.body.stop_sequences).toEqual(['STOP']);
     expect(request.body.top_k).toBe(20);
     expect(request.body.system).toEqual([{ type: 'text', text: 'System' }]);
+    expect(request.body).not.toHaveProperty('metadata');
+    expect(request.body).not.toHaveProperty('reasoning_effort');
+    expect(request.body).not.toHaveProperty('verbosity');
   });
 });
