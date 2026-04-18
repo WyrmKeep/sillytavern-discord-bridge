@@ -7,9 +7,14 @@ import {
   redactSecrets,
 } from '../config/schema.js';
 import { readConfig, readSecrets, writeConfig, writeSecrets } from '../config/store.js';
-import { authorizePluginRoute, type RouteAuthorizationInput } from './security.js';
+import { logError } from '../logging.js';
+import { authorizeMutation } from './request-auth.js';
+import type { RouteRegistrationOptions } from './types.js';
 
-export function registerConfigRoutes(router: Router): void {
+export function registerConfigRoutes(
+  router: Router,
+  options: RouteRegistrationOptions = {},
+): void {
   router.get('/config', (_request, response) => {
     void sendConfigPayload(response);
   });
@@ -25,6 +30,7 @@ export function registerConfigRoutes(router: Router): void {
         const config = parseBridgeConfig(getBodyObject(request).config ?? getBodyObject(request));
         await writeConfig(paths.configFile, config);
         await sendConfigPayload(response);
+        scheduleDiscordBotReconcile(options);
       } catch (error) {
         response.status(400).json({ ok: false, reason: errorMessage(error) });
       }
@@ -50,10 +56,17 @@ export function registerConfigRoutes(router: Router): void {
         });
         await writeSecrets(paths.secretsFile, secrets);
         await sendConfigPayload(response);
+        scheduleDiscordBotReconcile(options);
       } catch (error) {
         response.status(400).json({ ok: false, reason: errorMessage(error) });
       }
     })();
+  });
+}
+
+function scheduleDiscordBotReconcile(options: RouteRegistrationOptions): void {
+  void options.discordBotRuntime?.reconcile().catch((error: unknown) => {
+    logError('discord bot reconcile after config change failed', error);
   });
 }
 
@@ -67,48 +80,6 @@ async function sendConfigPayload(response: Response): Promise<void> {
     config: redactConfig(config),
     secrets: redactSecrets(secrets),
   });
-}
-
-function authorizeMutation(request: Request, response: Response): boolean {
-  const result = authorizePluginRoute(getRouteAuthorizationInput(request));
-  if (!result.ok) {
-    response.status(result.status).json({ ok: false, reason: result.reason });
-    return false;
-  }
-  return true;
-}
-
-function getRouteAuthorizationInput(request: Request): RouteAuthorizationInput {
-  return {
-    method: request.method,
-    accountMode: 'disabled',
-    origin: isSameOrigin(request) ? 'same-origin' : 'remote',
-    remoteAddress: request.socket.remoteAddress,
-    providedBearerToken: getBearerToken(request),
-    expectedBearerToken: process.env.DISCORD_BRIDGE_PLUGIN_AUTH_TOKEN,
-  };
-}
-
-function isSameOrigin(request: Request): boolean {
-  const origin = request.get('origin');
-  const host = request.get('host');
-  if (!origin || !host) {
-    return false;
-  }
-
-  try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
-}
-
-function getBearerToken(request: Request): string | undefined {
-  const header = request.get('authorization');
-  if (!header?.startsWith('Bearer ')) {
-    return undefined;
-  }
-  return header.slice('Bearer '.length);
 }
 
 function getBodyObject(request: Request): Record<string, unknown> {
