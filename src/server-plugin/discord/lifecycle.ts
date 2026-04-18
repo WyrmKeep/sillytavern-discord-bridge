@@ -6,6 +6,10 @@ import {
 } from '../config/schema.js';
 import { readConfig, readSecrets } from '../config/store.js';
 import { logError, logInfo } from '../logging.js';
+import {
+  registerGuildCommands,
+  type RegisterGuildCommandsInput,
+} from './command-registration.js';
 import { createDiscordClient } from './client.js';
 
 export type DiscordBotClient = {
@@ -39,6 +43,7 @@ export type DiscordBotRuntime = {
 
 export type DiscordBotRuntimeDependencies = {
   createClient: () => DiscordBotClient;
+  registerCommands?: (input: RegisterGuildCommandsInput) => Promise<void>;
   readConfig: () => Promise<DiscordBridgeConfig>;
   readSecrets: () => Promise<DiscordBridgeSecrets>;
   logInfo?: (message: string) => void;
@@ -50,6 +55,7 @@ export function createDiscordBotRuntime(
 ): DiscordBotRuntime {
   let activeClient: DiscordBotClient | undefined;
   let activeTokenFingerprint: string | undefined;
+  let activeCommandRegistrationFingerprint: string | undefined;
   let status: DiscordBotStatus = {
     enabled: false,
     ready: false,
@@ -92,7 +98,23 @@ export function createDiscordBotRuntime(
         }
 
         const nextTokenFingerprint = fingerprintToken(token);
+        const nextCommandRegistrationFingerprint = fingerprintCommandRegistration({
+          token,
+          clientId: config.discord.clientId,
+          guildId: config.discord.guildId,
+        });
         if (activeClient && activeTokenFingerprint === nextTokenFingerprint) {
+          const commandStatus = await registerCommandsIfNeeded(
+            {
+              token,
+              clientId: config.discord.clientId,
+              guildId: config.discord.guildId,
+            },
+            nextCommandRegistrationFingerprint,
+          );
+          if (commandStatus) {
+            return commandStatus;
+          }
           return currentStatus(activeClient, status);
         }
 
@@ -107,6 +129,17 @@ export function createDiscordBotRuntime(
 
         try {
           await activeClient.login(token);
+          const commandStatus = await registerCommandsIfNeeded(
+            {
+              token,
+              clientId: config.discord.clientId,
+              guildId: config.discord.guildId,
+            },
+            nextCommandRegistrationFingerprint,
+          );
+          if (commandStatus) {
+            return commandStatus;
+          }
           status = currentStatus(activeClient, status);
           dependencies.logInfo?.(`discord bot ${status.ready ? 'ready' : 'starting'}`);
           return status;
@@ -138,6 +171,7 @@ export function createDiscordBotRuntime(
   };
 
   async function stopActiveClient(): Promise<void> {
+    activeCommandRegistrationFingerprint = undefined;
     if (!activeClient) {
       activeTokenFingerprint = undefined;
       return;
@@ -147,11 +181,41 @@ export function createDiscordBotRuntime(
     activeClient = undefined;
     activeTokenFingerprint = undefined;
   }
+
+  async function registerCommandsIfNeeded(
+    input: RegisterGuildCommandsInput,
+    fingerprint: string,
+  ): Promise<DiscordBotStatus | undefined> {
+    if (activeCommandRegistrationFingerprint === fingerprint) {
+      return undefined;
+    }
+
+    try {
+      await (dependencies.registerCommands ?? registerGuildCommands)(input);
+      activeCommandRegistrationFingerprint = fingerprint;
+      status = activeClient
+        ? currentStatus(activeClient, { enabled: true, ready: false, state: 'starting' })
+        : status;
+      dependencies.logInfo?.('discord guild slash commands registered');
+      return undefined;
+    } catch (error) {
+      const reason = errorMessage(error);
+      status = {
+        enabled: true,
+        ready: false,
+        state: 'error',
+        reason,
+      };
+      dependencies.logError?.(`discord guild slash command registration failed: ${reason}`);
+      return status;
+    }
+  }
 }
 
 export function createDefaultDiscordBotRuntime(): DiscordBotRuntime {
   return createDiscordBotRuntime({
     createClient: createDiscordClient,
+    registerCommands: registerGuildCommands,
     readConfig: async () => {
       const paths = resolveDefaultBridgePaths();
       return readConfig(paths.configFile);
@@ -188,6 +252,10 @@ function currentStatus(
     return previousStatus;
   }
 
+  if (previousStatus.state === 'error') {
+    return previousStatus;
+  }
+
   if (client.isReady()) {
     return {
       enabled: true,
@@ -206,6 +274,16 @@ function currentStatus(
 
 function fingerprintToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function fingerprintCommandRegistration(input: RegisterGuildCommandsInput): string {
+  return createHash('sha256')
+    .update(input.token)
+    .update('\0')
+    .update(input.clientId)
+    .update('\0')
+    .update(input.guildId)
+    .digest('hex');
 }
 
 function errorMessage(error: unknown): string {
