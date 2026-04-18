@@ -6,10 +6,13 @@ import {
 import { type DiscordBridgeConfig } from '../config/schema.js';
 import { readConfig, writeConfig } from '../config/store.js';
 import {
-  buildClaudeProxyRequest,
-  sendClaudeProxyRequest,
-} from '../generation/claude-reverse-proxy.js';
-import { buildBridgePrompt } from '../generation/prompt-builder.js';
+  buildHeadlessPromptMessages,
+  loadSillyTavernPreset,
+} from '../generation/headless-prompt-profile.js';
+import {
+  buildSillyTavernBackendRequest,
+  sendSillyTavernBackendRequest,
+} from '../generation/st-backend-generation.js';
 import {
   fallbackUserDirectories,
   type UserDirectories,
@@ -83,6 +86,8 @@ export type BridgeRuntimeDependencies = {
     character: BridgeCharacter;
     chat: ChatDocument;
   }) => Promise<string>;
+  fetchImpl?: typeof fetch;
+  sillyTavernBaseUrl?: string;
 };
 
 export type StartNewConversationInput = {
@@ -244,6 +249,10 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
                 loaded.chat,
                 input.discordUserId,
                 input.discordDisplayName,
+                {
+                  fetchImpl: dependencies.fetchImpl,
+                  sillyTavernBaseUrl: dependencies.sillyTavernBaseUrl,
+                },
               ),
         });
         const sent = await sendAssistantReply(input.discord, input.threadId, bridgeMessageId, result.reply);
@@ -300,12 +309,17 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
               character,
               chatBeforeAssistant(loaded.chat, decoded.bridgeMessageId),
               input.discordUserId,
+              undefined,
+              {
+                fetchImpl: dependencies.fetchImpl,
+                sillyTavernBaseUrl: dependencies.sillyTavernBaseUrl,
+              },
             ));
           assistant.swipes.push(reply);
           assistant.swipe_info.push({
             send_date: now().toISOString(),
             extra: {
-              api: 'claude-reverse-proxy',
+              api: 'sillytavern-chat-completions',
               model: 'claude-sonnet-4-6',
               discord_bridge: {
                 bridge_message_id: decoded.bridgeMessageId,
@@ -366,11 +380,21 @@ async function generateWithSillyTavernSettings(
   chat: ChatDocument,
   activeDiscordUserId?: string,
   activeDiscordDisplayName?: string,
+  options: {
+    fetchImpl?: typeof fetch;
+    sillyTavernBaseUrl?: string;
+  } = {},
 ): Promise<string> {
   const directories = userDirectories(paths, config);
   const rawSettings = await readSillyTavernSettingsFile(directories.settings);
   const settings = normalizeSillyTavernClaudeSettings(rawSettings);
-  const prompt = buildBridgePrompt({
+  const preset = await loadSillyTavernPreset({
+    dataRoot: paths.dataRoot,
+    userHandle: config.sillyTavernUserHandle,
+    presetName: config.generation.sillyTavernPresetName,
+  });
+  const messages = buildHeadlessPromptMessages({
+    preset,
     character,
     profiles: config.profiles,
     activeDiscordUserId,
@@ -378,8 +402,16 @@ async function generateWithSillyTavernSettings(
     chat,
     options: config.defaults,
   });
-  const request = buildClaudeProxyRequest(settings, prompt);
-  return sendClaudeProxyRequest(request);
+  const request = buildSillyTavernBackendRequest({
+    settings,
+    messages,
+    characterName: character.name,
+    userName: profileDisplayName(config, activeDiscordUserId ?? '', activeDiscordDisplayName),
+  });
+  return sendSillyTavernBackendRequest(request, {
+    baseUrl: options.sillyTavernBaseUrl,
+    fetchImpl: options.fetchImpl,
+  });
 }
 
 async function sendAssistantReply(

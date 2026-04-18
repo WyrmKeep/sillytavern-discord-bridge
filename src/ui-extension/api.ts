@@ -54,6 +54,10 @@ export type BridgeConfig = {
       persona: string;
     }
   >;
+  generation: {
+    promptMode: 'headless-st-preset';
+    sillyTavernPresetName: string;
+  };
   defaults: {
     defaultCharacterAvatarFile: string;
     maxHistoryMessages: number;

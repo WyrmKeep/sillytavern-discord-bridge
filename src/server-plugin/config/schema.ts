@@ -20,6 +20,10 @@ export const DEFAULT_CONFIG = {
     adminUserIds: [],
   },
   profiles: {},
+  generation: {
+    promptMode: 'headless-st-preset',
+    sillyTavernPresetName: '',
+  },
   defaults: {
     defaultCharacterAvatarFile: '',
     maxHistoryMessages: 80,
@@ -60,6 +64,10 @@ export const bridgeConfigSchema = z
       adminUserIds: stringArray,
     }),
     profiles: z.record(z.string(), profileSchema).default({}),
+    generation: z.object({
+      promptMode: z.literal('headless-st-preset').default('headless-st-preset'),
+      sillyTavernPresetName: z.string().trim().default(''),
+    }).default(DEFAULT_CONFIG.generation),
     defaults: z.object({
       defaultCharacterAvatarFile: z.string().default(''),
       maxHistoryMessages: z.number().int().min(1).max(500).default(80),

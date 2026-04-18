@@ -13,8 +13,10 @@ Run the bridge only on a private/local SillyTavern deployment. Do not expose the
    ```
 
 4. Confirm the Discord bot token and bridge config are present in local runtime storage.
-5. The server plugin logs in the Discord bot and registers guild slash commands during startup/reconcile.
-6. Use `/st status` in the private guild.
+5. Confirm `ST Chat Completion preset` is set to the preset filename without `.json`.
+6. Confirm that preset exists at `{DATA_ROOT}/{handle}/OpenAI Settings/{preset}.json`.
+7. The server plugin logs in the Discord bot and registers guild slash commands during startup/reconcile.
+8. Use `/st status` in the private guild.
 
 ## Daily Use
 
@@ -32,7 +34,7 @@ The bridge should:
 - create one SillyTavern JSONL chat file
 - map the Discord thread ID to that chat file in bridge state
 
-Then send normal messages inside the thread. Those messages are appended to the mapped SillyTavern chat and sent to Claude through SillyTavern's configured Chat Completion reverse-proxy settings.
+Then send normal messages inside the thread. Those messages are appended to the mapped SillyTavern chat, combined with the pinned saved Chat Completion preset, and generated through SillyTavern's Chat Completion backend route.
 
 Slash commands available in v1:
 
@@ -80,6 +82,22 @@ Before upgrading the bridge or changing persistence logic, back up:
 
 Runtime chat data, debug dumps, and local secrets must stay out of git.
 
+## Headless Prompt Profile
+
+The bridge does not require a SillyTavern browser tab to stay open. It reads the saved preset file directly:
+
+```text
+{DATA_ROOT}/{handle}/OpenAI Settings/{preset}.json
+```
+
+Configure `ST Chat Completion preset` with the filename stem only. For example, `Roleplay` loads:
+
+```text
+{DATA_ROOT}/{handle}/OpenAI Settings/Roleplay.json
+```
+
+If the preset is missing, generation fails clearly instead of falling back to a simplified prompt. Save jailbreak, main prompt, NSFW prompt, and prompt ordering into the preset before using it from Discord.
+
 ## Logging
 
 Default logs must not include:
@@ -113,4 +131,5 @@ If the bot appears online after shutdown:
 - multi-character chats
 - alternate greeting selection
 - simultaneous SillyTavern and Discord editing of the same active chat
-- full SillyTavern Prompt Manager parity
+- live browser-only extension prompt state
+- exact SillyTavern frontend token-budget parity

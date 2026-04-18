@@ -58,4 +58,19 @@ describe('bridge config schema', () => {
     expect(redacted.discord.guildId).toBe(DEFAULT_CONFIG.discord.guildId);
     expect(JSON.stringify(redacted)).not.toContain('DISCORD_BOT_TOKEN');
   });
+
+  test('generation config pins a headless SillyTavern preset by filename stem', () => {
+    const config = parseBridgeConfig({
+      ...DEFAULT_CONFIG,
+      generation: {
+        promptMode: 'headless-st-preset',
+        sillyTavernPresetName: 'Roleplay',
+      },
+    });
+
+    expect(config.generation).toEqual({
+      promptMode: 'headless-st-preset',
+      sillyTavernPresetName: 'Roleplay',
+    });
+  });
 });
