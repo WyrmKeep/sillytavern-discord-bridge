@@ -199,6 +199,89 @@ describe('headless prompt profile', () => {
     expect(messages[0]?.content).not.toContain('{{');
     expect(messages[0]?.content).not.toContain('private preset comment');
   });
+
+  test('drops prompt and history messages that are empty after macro expansion', () => {
+    const emptyCharacter: BridgeCharacter = {
+      ...character,
+      description: '',
+      personality: '',
+      scenario: '',
+      mesExample: '',
+      systemPrompt: '',
+      postHistoryInstructions: '',
+    };
+    const chat = createChatDocument({
+      guildId: 'guild',
+      forumChannelId: 'forum',
+      threadId: 'thread',
+      characterAvatarFile: 'Alice.png',
+      chatFolderName: 'Alice',
+      createdByDiscordUserId: 'user',
+      createdAt: '2026-04-18T12:00:00.000Z',
+    });
+    appendUserMessage(chat, {
+      name: 'Rober',
+      mes: '{{// comment-only user message }}',
+      sendDate: '2026-04-18T12:01:00.000Z',
+      discordUserId: 'user',
+      discordMessageId: 'user-message',
+      discordThreadId: 'thread',
+    });
+    appendAssistantMessage(chat, {
+      name: 'Alice',
+      mes: '{{description}}',
+      sendDate: '2026-04-18T12:02:00.000Z',
+      bridgeMessageId: 'assistant',
+      discordMessageId: 'assistant-message',
+      discordThreadId: 'thread',
+      model: 'claude-sonnet-4-6',
+    });
+
+    const messages = buildHeadlessPromptMessages({
+      preset: {
+        raw: {
+          prompts: [
+            { identifier: 'main', role: 'system', content: '{{description}}' },
+            { identifier: 'personaDescription', role: 'system', content: '{{persona}}' },
+            { identifier: 'scenario', role: 'system', content: '{{scenario}}' },
+            { identifier: 'jailbreak', role: 'system', content: '{{// preset comment }}' },
+            { identifier: 'customNonEmpty', role: 'system', content: 'Keep this non-empty.' },
+          ],
+          prompt_order: [
+            { identifier: 'main', enabled: true },
+            { identifier: 'personaDescription', enabled: true },
+            { identifier: 'scenario', enabled: true },
+            { identifier: 'chatHistory', enabled: true },
+            { identifier: 'jailbreak', enabled: true },
+            { identifier: 'customNonEmpty', enabled: true },
+          ],
+        },
+        filePath: 'preset.json',
+      },
+      character: emptyCharacter,
+      profiles: {
+        user: {
+          enabled: true,
+          promptName: 'Rober',
+          displayName: 'Rober',
+          persona: '',
+        },
+      },
+      activeDiscordUserId: 'user',
+      activeDiscordDisplayName: 'Fallback',
+      chat,
+      options: {
+        defaultCharacterAvatarFile: 'Alice.png',
+        includeCreatorNotes: false,
+        includePostHistoryInstructions: true,
+        maxHistoryMessages: 80,
+        maxReplyCharacters: 1800,
+      },
+    });
+
+    expect(messages).toEqual([{ role: 'system', content: 'Keep this non-empty.' }]);
+    expect(messages.every((message) => message.content.trim().length > 0)).toBe(true);
+  });
 });
 
 async function fixtureDataRoot(): Promise<string> {

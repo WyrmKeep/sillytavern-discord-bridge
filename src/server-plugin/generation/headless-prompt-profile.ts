@@ -198,13 +198,14 @@ export function buildHeadlessPromptMessages(input: BuildHeadlessPromptMessagesIn
 
     const prompt = promptsById.get(entry.identifier);
     const content = resolvePromptContent(entry.identifier, prompt, input, context);
-    if (!content.trim()) {
+    const expandedContent = applyMacros(content, context);
+    if (!expandedContent.trim()) {
       continue;
     }
 
     messages.push({
       role: prompt?.role ?? 'system',
-      content: applyMacros(content, context),
+      content: expandedContent,
     });
   }
 
@@ -338,9 +339,13 @@ function toPromptMessage(
     const discordUserId = message.extra?.discord_bridge?.discord_user_id;
     const profile = typeof discordUserId === 'string' ? profiles[discordUserId] : undefined;
     const promptName = profile?.enabled ? profile.promptName : message.name ?? 'User';
+    const content = applyMacros(message.mes ?? '', context);
+    if (!content.trim()) {
+      return undefined;
+    }
     return {
       role: 'user',
-      content: `${promptName}: ${applyMacros(message.mes ?? '', context)}`,
+      content: `${promptName}: ${content}`,
     };
   }
 
@@ -348,9 +353,13 @@ function toPromptMessage(
     message.swipes && typeof message.swipe_id === 'number'
       ? message.swipes[message.swipe_id]
       : undefined;
+  const content = applyMacros(selectedSwipe ?? message.mes ?? '', context);
+  if (!content.trim()) {
+    return undefined;
+  }
   return {
     role: 'assistant',
-    content: applyMacros(selectedSwipe ?? message.mes ?? '', context),
+    content,
   };
 }
 
