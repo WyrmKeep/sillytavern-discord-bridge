@@ -73,4 +73,19 @@ describe('bridge config schema', () => {
       sillyTavernPresetName: 'Roleplay',
     });
   });
+
+  test('defaults include a configurable context budget', () => {
+    const config = parseBridgeConfig(DEFAULT_CONFIG);
+
+    expect(config.defaults.contextBudgetTokens).toBe(180000);
+    expect(() =>
+      parseBridgeConfig({
+        ...DEFAULT_CONFIG,
+        defaults: {
+          ...DEFAULT_CONFIG.defaults,
+          contextBudgetTokens: 999,
+        },
+      }),
+    ).toThrow(/contextBudgetTokens/i);
+  });
 });

@@ -177,9 +177,13 @@ describe('bridge runtime', () => {
       const body = JSON.parse(String(init?.body)) as {
         messages: Array<{ role: string; content: string }>;
         assistant_prefill?: string;
+        custom_prompt_post_processing?: string;
         proxy_password?: string;
       };
-      expect(body.messages.map((message) => message.content)).toContain('Jailbreak after history.');
+      const promptText = body.messages.map((message) => message.content).join('\n');
+      expect(promptText).toContain('Jailbreak after Friend and Alice: 240.');
+      expect(promptText).not.toContain('{{');
+      expect(body.custom_prompt_post_processing).toBeUndefined();
       expect(body.messages.map((message) => message.content)).not.toContain('Assistant prefill.');
       expect(body.assistant_prefill).toBe('Assistant prefill.');
       expect(body.proxy_password).toBe('proxy-secret');
@@ -321,7 +325,18 @@ async function writeHeadlessGenerationFixtures(dataRoot: string): Promise<void> 
   await writeFile(
     path.join(userRoot, 'OpenAI Settings', 'Roleplay.json'),
     JSON.stringify({
-      jailbreak_prompt: 'Jailbreak after history.',
+      prompts: [
+        {
+          identifier: 'jailbreak',
+          role: 'system',
+          content: [
+            {
+              type: 'text',
+              text: 'Jailbreak after {{user}} and {{char}}: {{random:240,240,240}}.',
+            },
+          ],
+        },
+      ],
       prompt_order: [
         {
           character_id: 100001,

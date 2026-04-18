@@ -168,6 +168,10 @@ function fallbackSettingsTemplate(): string {
                 <input type="number" data-field="maxHistoryMessages" min="1" max="500" autocomplete="off" />
               </div>
               <div class="discord-bridge-field">
+                <label class="discord-bridge-field-label">Context budget tokens</label>
+                <input type="number" data-field="contextBudgetTokens" min="1000" max="1000000" autocomplete="off" />
+              </div>
+              <div class="discord-bridge-field">
                 <label class="discord-bridge-field-label">Max reply characters</label>
                 <input type="number" data-field="maxReplyCharacters" min="200" max="2000" autocomplete="off" />
               </div>
@@ -275,6 +279,7 @@ function populateForm(form: HTMLFormElement, values: SettingsFormValues): void {
   setInputValue(form, 'adminUserIds', values.adminUserIds);
   setInputValue(form, 'defaultCharacterAvatarFile', values.defaultCharacterAvatarFile);
   setInputValue(form, 'maxHistoryMessages', values.maxHistoryMessages);
+  setInputValue(form, 'contextBudgetTokens', values.contextBudgetTokens);
   setInputValue(form, 'maxReplyCharacters', values.maxReplyCharacters);
   setCheckedValue(form, 'includeCreatorNotes', values.includeCreatorNotes);
   setCheckedValue(form, 'includePostHistoryInstructions', values.includePostHistoryInstructions);
@@ -295,6 +300,7 @@ function readFormValues(form: HTMLFormElement): SettingsFormValues {
     adminUserIds: getInputValue(form, 'adminUserIds'),
     defaultCharacterAvatarFile: getInputValue(form, 'defaultCharacterAvatarFile'),
     maxHistoryMessages: getInputValue(form, 'maxHistoryMessages'),
+    contextBudgetTokens: getInputValue(form, 'contextBudgetTokens'),
     maxReplyCharacters: getInputValue(form, 'maxReplyCharacters'),
     includeCreatorNotes: getCheckedValue(form, 'includeCreatorNotes'),
     includePostHistoryInstructions: getCheckedValue(form, 'includePostHistoryInstructions'),

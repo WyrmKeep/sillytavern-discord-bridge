@@ -12,6 +12,7 @@ export type SettingsFormValues = {
   sillyTavernPresetName: string;
   defaultCharacterAvatarFile: string;
   maxHistoryMessages: string;
+  contextBudgetTokens: string;
   maxReplyCharacters: string;
   includeCreatorNotes: boolean;
   includePostHistoryInstructions: boolean;
@@ -32,6 +33,7 @@ export function configToFormValues(config: BridgeConfig): SettingsFormValues {
     sillyTavernPresetName: config.generation.sillyTavernPresetName,
     defaultCharacterAvatarFile: config.defaults.defaultCharacterAvatarFile,
     maxHistoryMessages: String(config.defaults.maxHistoryMessages),
+    contextBudgetTokens: String(config.defaults.contextBudgetTokens),
     maxReplyCharacters: String(config.defaults.maxReplyCharacters),
     includeCreatorNotes: config.defaults.includeCreatorNotes,
     includePostHistoryInstructions: config.defaults.includePostHistoryInstructions,
@@ -72,6 +74,10 @@ export function formValuesToConfig(
       maxHistoryMessages: parsePositiveInteger(
         values.maxHistoryMessages,
         current.defaults.maxHistoryMessages,
+      ),
+      contextBudgetTokens: parsePositiveInteger(
+        values.contextBudgetTokens,
+        current.defaults.contextBudgetTokens,
       ),
       maxReplyCharacters: parsePositiveInteger(
         values.maxReplyCharacters,

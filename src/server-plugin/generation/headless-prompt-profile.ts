@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { DiscordBridgeConfig } from '../config/schema.js';
 import type { BridgeCharacter } from '../sillytavern/characters.js';
 import type { ChatDocument, ChatMessage } from '../sillytavern/chats.js';
+import { trimMessagesToContextBudget, type TokenBudgetMessage } from './token-budget.js';
 import type { PromptProfile } from './types.js';
 
 export type HeadlessPromptRole = 'system' | 'user' | 'assistant';
@@ -30,7 +31,11 @@ export type BuildHeadlessPromptMessagesInput = {
   activeDiscordUserId?: string;
   activeDiscordDisplayName?: string;
   chat: ChatDocument;
-  options: DiscordBridgeConfig['defaults'];
+  options: HeadlessPromptDefaults;
+};
+
+type HeadlessPromptDefaults = Omit<DiscordBridgeConfig['defaults'], 'contextBudgetTokens'> & {
+  contextBudgetTokens?: number;
 };
 
 type PromptDefinition = {
@@ -162,6 +167,9 @@ const DEFAULT_PROMPT_ORDER: PromptOrderEntry[] = [
   { identifier: 'jailbreak', enabled: true },
 ];
 
+const DEFAULT_CONTEXT_BUDGET_TOKENS = 180000;
+const OMITTED_HISTORY_MARKER = '[Earlier chat history omitted to fit context window.]';
+
 export async function loadSillyTavernPreset(input: LoadSillyTavernPresetInput): Promise<LoadedSillyTavernPreset> {
   const presetStem = sanitizePresetName(input.presetName);
   const filePath = path.join(input.dataRoot, input.userHandle, 'OpenAI Settings', `${presetStem}.json`);
@@ -184,7 +192,7 @@ export function buildHeadlessPromptMessages(input: BuildHeadlessPromptMessagesIn
   const context = resolveMacroContext(input);
   const normalized = normalizePromptPreset(input.preset.raw);
   const promptsById = new Map(normalized.prompts.map((prompt) => [prompt.identifier, prompt]));
-  const messages: HeadlessPromptMessage[] = [];
+  const messages: TokenBudgetMessage[] = [];
 
   for (const entry of normalized.order) {
     if (!entry.enabled) {
@@ -206,10 +214,15 @@ export function buildHeadlessPromptMessages(input: BuildHeadlessPromptMessagesIn
     messages.push({
       role: prompt?.role ?? 'system',
       content: expandedContent,
+      source: 'prompt',
     });
   }
 
-  return messages;
+  return trimMessagesToContextBudget({
+    messages,
+    contextBudgetTokens: input.options.contextBudgetTokens ?? DEFAULT_CONTEXT_BUDGET_TOKENS,
+    omittedHistoryMarker: OMITTED_HISTORY_MARKER,
+  }).map(({ role, content }) => ({ role, content }));
 }
 
 function normalizePromptPreset(raw: Record<string, unknown>): {
@@ -318,19 +331,19 @@ function buildHistoryMessages(
   profiles: Record<string, PromptProfile>,
   context: MacroContext,
   maxHistoryMessages: number,
-): HeadlessPromptMessage[] {
+): TokenBudgetMessage[] {
   return chat
     .slice(1)
     .slice(-maxHistoryMessages)
     .map((message) => toPromptMessage(message, profiles, context))
-    .filter((message): message is HeadlessPromptMessage => message !== undefined);
+    .filter((message): message is TokenBudgetMessage => message !== undefined);
 }
 
 function toPromptMessage(
   message: ChatMessage,
   profiles: Record<string, PromptProfile>,
   context: MacroContext,
-): HeadlessPromptMessage | undefined {
+): TokenBudgetMessage | undefined {
   if (!message.mes && !message.swipes?.length) {
     return undefined;
   }
@@ -346,6 +359,7 @@ function toPromptMessage(
     return {
       role: 'user',
       content: `${promptName}: ${content}`,
+      source: 'history',
     };
   }
 
@@ -360,6 +374,7 @@ function toPromptMessage(
   return {
     role: 'assistant',
     content,
+    source: 'history',
   };
 }
 
@@ -452,7 +467,7 @@ function toPromptDefinition(value: Record<string, unknown>): PromptDefinition | 
     identifier,
     name: optionalString(value.name),
     role: normalizeRole(value.role),
-    content: optionalString(value.content),
+    content: optionalPromptContent(value.content),
     marker: typeof value.marker === 'boolean' ? value.marker : undefined,
     system_prompt: typeof value.system_prompt === 'boolean' ? value.system_prompt : undefined,
   };
@@ -478,6 +493,30 @@ function normalizeRole(value: unknown): HeadlessPromptRole | undefined {
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function optionalPromptContent(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map(optionalPromptContent)
+      .filter((part): part is string => part !== undefined && part.length > 0);
+    return parts.length > 0 ? parts.join('\n') : undefined;
+  }
+
+  if (isRecord(value)) {
+    if (typeof value.text === 'string') {
+      return value.text;
+    }
+    if ('content' in value) {
+      return optionalPromptContent(value.content);
+    }
+  }
+
+  return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
