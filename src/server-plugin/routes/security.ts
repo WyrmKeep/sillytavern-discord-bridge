@@ -35,7 +35,7 @@ export function authorizePluginRoute(input: RouteAuthorizationInput): RouteAutho
     return { ok: true };
   }
 
-  if (input.origin === 'same-origin' && isLocalAddress(input.remoteAddress)) {
+  if (input.origin === 'same-origin' && isTrustedPrivateAddress(input.remoteAddress)) {
     return { ok: true };
   }
 
@@ -59,4 +59,28 @@ function isLocalAddress(address: string | undefined): boolean {
     return false;
   }
   return ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost'].includes(address);
+}
+
+function isTrustedPrivateAddress(address: string | undefined): boolean {
+  if (!address) {
+    return false;
+  }
+
+  const normalized = address.replace(/^::ffff:/u, '');
+  if (isLocalAddress(normalized)) {
+    return true;
+  }
+
+  const parts = normalized.split('.').map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    return false;
+  }
+
+  const [first, second] = parts;
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 100 && second >= 64 && second <= 127)
+  );
 }

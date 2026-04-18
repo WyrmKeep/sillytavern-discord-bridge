@@ -17,6 +17,56 @@
         <span>Claude endpoint</span>
         <span>Uses SillyTavern Chat Completion settings</span>
       </div>
+      <form class="discord-bridge-form" data-config-form>
+        <label>
+          <input type="checkbox" data-field="enabled" />
+          Enable Discord bridge
+        </label>
+        <label>
+          SillyTavern user handle
+          <input type="text" data-field="sillyTavernUserHandle" autocomplete="off" />
+        </label>
+        <label>
+          Discord client ID
+          <input type="text" data-field="clientId" autocomplete="off" />
+        </label>
+        <label>
+          Discord guild ID
+          <input type="text" data-field="guildId" autocomplete="off" />
+        </label>
+        <label>
+          Discord forum channel ID
+          <input type="text" data-field="forumChannelId" autocomplete="off" />
+        </label>
+        <label>
+          Required/default forum tag IDs
+          <textarea data-field="defaultForumTagIds" rows="2"></textarea>
+        </label>
+        <label>
+          Allowed Discord user IDs
+          <textarea data-field="allowlistedUserIds" rows="2"></textarea>
+        </label>
+        <label>
+          Admin Discord user IDs
+          <textarea data-field="adminUserIds" rows="2"></textarea>
+        </label>
+        <label>
+          Default character avatar file
+          <input type="text" data-field="defaultCharacterAvatarFile" autocomplete="off" />
+        </label>
+        <label>
+          Conversation title format
+          <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
+        </label>
+        <label>
+          Discord bot token
+          <input type="password" data-field="discordBotToken" autocomplete="new-password" placeholder="Leave blank to keep existing token" />
+        </label>
+        <div class="discord-bridge-actions">
+          <button type="submit" class="menu_button">Save</button>
+          <span data-config-status>Loading config...</span>
+        </div>
+      </form>
     </div>
   </div>
 </div>
