@@ -102,3 +102,33 @@ export function parseClaudeProxyResponse(response: unknown): string {
 
   throw new GenerationError('Claude proxy response did not contain text.');
 }
+
+export async function sendClaudeProxyRequest(
+  request: ClaudeProxyRequest,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const response = await fetchImpl(request.url, {
+    method: 'POST',
+    headers: request.headers,
+    body: JSON.stringify(request.body),
+  });
+
+  if (!response.ok) {
+    throw new GenerationError(
+      `Claude proxy request failed with status ${response.status}.`,
+      response.status,
+      await redactedPreview(response),
+    );
+  }
+
+  return parseClaudeProxyResponse(await response.json());
+}
+
+async function redactedPreview(response: Response): Promise<string> {
+  try {
+    const text = await response.text();
+    return text.slice(0, 300);
+  } catch {
+    return '';
+  }
+}

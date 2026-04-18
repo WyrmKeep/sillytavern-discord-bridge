@@ -10,7 +10,12 @@ export type SettingsFormValues = {
   allowlistedUserIds: string;
   adminUserIds: string;
   defaultCharacterAvatarFile: string;
+  maxHistoryMessages: string;
+  maxReplyCharacters: string;
+  includeCreatorNotes: boolean;
+  includePostHistoryInstructions: boolean;
   conversationTitleFormat: string;
+  profilesJson: string;
 };
 
 export function configToFormValues(config: BridgeConfig): SettingsFormValues {
@@ -24,7 +29,12 @@ export function configToFormValues(config: BridgeConfig): SettingsFormValues {
     allowlistedUserIds: config.access.allowlistedUserIds.join(', '),
     adminUserIds: config.access.adminUserIds.join(', '),
     defaultCharacterAvatarFile: config.defaults.defaultCharacterAvatarFile,
+    maxHistoryMessages: String(config.defaults.maxHistoryMessages),
+    maxReplyCharacters: String(config.defaults.maxReplyCharacters),
+    includeCreatorNotes: config.defaults.includeCreatorNotes,
+    includePostHistoryInstructions: config.defaults.includePostHistoryInstructions,
     conversationTitleFormat: config.behavior.conversationTitleFormat,
+    profilesJson: JSON.stringify(config.profiles, null, 2),
   };
 }
 
@@ -48,15 +58,43 @@ export function formValuesToConfig(
       allowlistedUserIds: parseCommaSeparatedIds(values.allowlistedUserIds),
       adminUserIds: parseCommaSeparatedIds(values.adminUserIds),
     },
+    profiles: parseProfilesJson(values.profilesJson),
     defaults: {
       ...current.defaults,
       defaultCharacterAvatarFile: values.defaultCharacterAvatarFile.trim(),
+      maxHistoryMessages: parsePositiveInteger(
+        values.maxHistoryMessages,
+        current.defaults.maxHistoryMessages,
+      ),
+      maxReplyCharacters: parsePositiveInteger(
+        values.maxReplyCharacters,
+        current.defaults.maxReplyCharacters,
+      ),
+      includeCreatorNotes: values.includeCreatorNotes,
+      includePostHistoryInstructions: values.includePostHistoryInstructions,
     },
     behavior: {
       ...current.behavior,
       conversationTitleFormat: values.conversationTitleFormat.trim() || '{{character}} - {{date}}',
     },
   };
+}
+
+function parsePositiveInteger(value: string, fallback: number): number {
+  const parsed = Number.parseInt(value.trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseProfilesJson(value: string): BridgeConfig['profiles'] {
+  try {
+    const parsed = value.trim() ? JSON.parse(value) as unknown : {};
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Profiles JSON must be an object.');
+    }
+    return parsed as BridgeConfig['profiles'];
+  } catch (error) {
+    throw new Error(error instanceof Error ? `Profiles JSON invalid: ${error.message}` : 'Profiles JSON invalid.');
+  }
 }
 
 export function parseCommaSeparatedIds(value: string): string[] {

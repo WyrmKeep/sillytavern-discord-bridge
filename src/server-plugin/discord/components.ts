@@ -36,3 +36,39 @@ export function decodeSwipeCustomId(customId: string): DecodedSwipeCustomId {
 export function swipeCounterLabel(selectedIndex: number, total: number): string {
   return `Swipe ${selectedIndex + 1}/${total}`;
 }
+
+export function buildSwipeComponentPayload(
+  threadId: string,
+  bridgeMessageId: string,
+  selectedIndex: number,
+  total: number,
+): unknown[] {
+  return [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 2,
+          label: '<',
+          custom_id: encodeSwipeCustomId('swipe_prev', threadId, bridgeMessageId),
+          disabled: selectedIndex <= 0,
+        },
+        {
+          type: 2,
+          style: 1,
+          label: `Regenerate - ${swipeCounterLabel(selectedIndex, total)}`,
+          custom_id: encodeSwipeCustomId('swipe_regen', threadId, bridgeMessageId),
+          disabled: false,
+        },
+        {
+          type: 2,
+          style: 2,
+          label: '>',
+          custom_id: encodeSwipeCustomId('swipe_next', threadId, bridgeMessageId),
+          disabled: selectedIndex >= total - 1,
+        },
+      ],
+    },
+  ];
+}

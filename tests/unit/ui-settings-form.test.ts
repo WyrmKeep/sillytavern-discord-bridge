@@ -40,7 +40,17 @@ const config: BridgeConfig = {
 
 describe('UI settings form mapping', () => {
   test('formats config as editable form values', () => {
-    expect(configToFormValues(config)).toMatchObject({
+    expect(configToFormValues({
+      ...config,
+      profiles: {
+        '123': {
+          enabled: true,
+          promptName: 'Rober',
+          displayName: 'Rober',
+          persona: 'Friendly operator.',
+        },
+      },
+    })).toMatchObject({
       enabled: false,
       sillyTavernUserHandle: 'default-user',
       clientId: '111',
@@ -49,6 +59,11 @@ describe('UI settings form mapping', () => {
       defaultForumTagIds: '444',
       allowlistedUserIds: '555',
       adminUserIds: '666',
+      maxHistoryMessages: '80',
+      maxReplyCharacters: '1800',
+      includeCreatorNotes: false,
+      includePostHistoryInstructions: true,
+      profilesJson: expect.stringContaining('"123"'),
     });
   });
 
@@ -67,7 +82,19 @@ describe('UI settings form mapping', () => {
       allowlistedUserIds: 'user-a,user-b',
       adminUserIds: 'admin-a',
       defaultCharacterAvatarFile: 'Alice.png',
+      maxHistoryMessages: '24',
+      maxReplyCharacters: '1200',
+      includeCreatorNotes: true,
+      includePostHistoryInstructions: false,
       conversationTitleFormat: '{{character}}',
+      profilesJson: JSON.stringify({
+        'user-a': {
+          enabled: true,
+          promptName: 'Alice',
+          displayName: 'Alice',
+          persona: 'Profile text.',
+        },
+      }),
     });
 
     expect(updated.enabled).toBe(true);
@@ -76,8 +103,21 @@ describe('UI settings form mapping', () => {
     expect(updated.discord.defaultForumTagIds).toEqual(['tag-a', 'tag-b']);
     expect(updated.access.allowlistedUserIds).toEqual(['user-a', 'user-b']);
     expect(updated.access.adminUserIds).toEqual(['admin-a']);
-    expect(updated.defaults.maxHistoryMessages).toBe(80);
+    expect(updated.defaults.maxHistoryMessages).toBe(24);
+    expect(updated.defaults.maxReplyCharacters).toBe(1200);
+    expect(updated.defaults.includeCreatorNotes).toBe(true);
+    expect(updated.defaults.includePostHistoryInstructions).toBe(false);
     expect(updated.defaults.defaultCharacterAvatarFile).toBe('Alice.png');
     expect(updated.behavior.conversationTitleFormat).toBe('{{character}}');
+    expect(updated.profiles['user-a']?.persona).toBe('Profile text.');
+  });
+
+  test('rejects malformed profile JSON', () => {
+    expect(() =>
+      formValuesToConfig(config, {
+        ...configToFormValues(config),
+        profilesJson: '{bad',
+      }),
+    ).toThrow(/profiles json/i);
   });
 });

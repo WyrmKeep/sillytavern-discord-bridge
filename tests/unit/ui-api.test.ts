@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { fetchBridgeConfig, saveBridgeConfig, saveBridgeSecrets } from '../../src/ui-extension/api.js';
+import {
+  fetchBridgeConfig,
+  fetchStSettingsStatus,
+  saveBridgeConfig,
+  saveBridgeSecrets,
+} from '../../src/ui-extension/api.js';
 import { configToFormValues } from '../../src/ui-extension/settings-form.js';
 import { DEFAULT_CONFIG, parseBridgeConfig } from '../../src/server-plugin/config/schema.js';
 
@@ -76,5 +81,27 @@ describe('UI API', () => {
     const payload = await fetchBridgeConfig();
 
     expect(configToFormValues(payload.config).sillyTavernUserHandle).toBe('default-user');
+  });
+
+  test('fetches SillyTavern settings diagnostics', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              ok: true,
+              model: 'claude-sonnet-4-6',
+              reverseProxy: '<configured>',
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+
+    await expect(fetchStSettingsStatus()).resolves.toMatchObject({
+      ok: true,
+      model: 'claude-sonnet-4-6',
+    });
   });
 });

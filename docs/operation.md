@@ -13,12 +13,7 @@ Run the bridge only on a private/local SillyTavern deployment. Do not expose the
    ```
 
 4. Confirm the Discord bot token and bridge config are present in local runtime storage.
-5. Register slash commands after command-shape changes:
-
-   ```powershell
-   npm run register:discord
-   ```
-
+5. The server plugin logs in the Discord bot and registers guild slash commands during startup/reconcile.
 6. Use `/st status` in the private guild.
 
 ## Daily Use
@@ -38,6 +33,15 @@ The bridge should:
 - map the Discord thread ID to that chat file in bridge state
 
 Then send normal messages inside the thread. Those messages are appended to the mapped SillyTavern chat and sent to Claude through SillyTavern's configured Chat Completion reverse-proxy settings.
+
+Slash commands available in v1:
+
+- `/st new character:<character>` creates a Discord forum post/thread and a bridge-owned SillyTavern chat.
+- `/st status` confirms the bot command handler is reachable.
+- `/st character` reports the mapped SillyTavern character for the current bridge thread.
+- `/st sync` reports the mapped chat folder/file for the current bridge thread.
+
+The `character` option autocompletes from the configured SillyTavern user's character cards.
 
 ## Swipe / Regenerate Flow
 
