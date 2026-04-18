@@ -1,29 +1,26 @@
-async function r() {
-  const e = await fetch("/api/plugins/discord-bridge/status");
-  if (!e.ok)
-    throw new Error(`Bridge status failed: ${e.status}`);
-  return await e.json();
+async function d() {
+  const t = await fetch("/api/plugins/discord-bridge/status");
+  if (!t.ok)
+    throw new Error(`Bridge status failed: ${t.status}`);
+  return await t.json();
 }
-const o = "third-party/discord-bridge", c = "extensions_settings2";
-async function l(e = {}) {
-  const n = e.documentRef ?? globalThis.document, t = (n == null ? void 0 : n.getElementById(c)) ?? null;
-  return t ? (await u(t, e), "mounted") : "missing-container";
+const r = "extensions_settings2";
+async function c(t = {}) {
+  const e = t.documentRef ?? globalThis.document, n = (e == null ? void 0 : e.getElementById(r)) ?? null;
+  return n ? (await o(n, t), "mounted") : "missing-container";
 }
-async function u(e, n = {}) {
-  const t = await g(n.renderTemplate).catch(() => {
+async function o(t, e = {}) {
+  const n = await l(e.renderTemplate).catch(() => {
   });
-  e.insertAdjacentHTML("beforeend", t ?? f());
-  const i = await (n.fetchStatus ?? r)().catch(() => ({ ok: !1 })), s = e.querySelector("[data-status]");
-  s && (s.textContent = i.ok ? "Plugin reachable" : "Plugin unavailable");
+  t.insertAdjacentHTML("beforeend", n ?? u());
+  const a = await (e.fetchStatus ?? d)().catch(() => ({ ok: !1 })), i = t.querySelector("[data-status]");
+  i && (i.textContent = a.ok ? "Plugin reachable" : "Plugin unavailable");
 }
-async function g(e) {
-  var t, i, s, a;
-  if (e)
-    return e();
-  const n = (s = (i = (t = globalThis.window) == null ? void 0 : t.SillyTavern) == null ? void 0 : i.getContext) == null ? void 0 : s.call(i);
-  return (a = n == null ? void 0 : n.renderExtensionTemplateAsync) == null ? void 0 : a.call(n, o, "settings");
+async function l(t) {
+  if (t)
+    return t();
 }
-function f() {
+function u() {
   return `
     <div id="discord-bridge-settings" class="discord-bridge-settings">
       <div class="inline-drawer">
@@ -41,7 +38,7 @@ function f() {
     </div>
   `;
 }
-function d() {
-  l();
+function s() {
+  c();
 }
-document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", d, { once: !0 }) : d();
+document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", s, { once: !0 }) : s();
