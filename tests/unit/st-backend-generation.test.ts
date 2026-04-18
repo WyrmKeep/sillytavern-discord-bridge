@@ -83,4 +83,34 @@ describe('SillyTavern backend generation', () => {
     expect(result).toBe('Generated reply.');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  test('extracts Anthropic text blocks and ignores thinking blocks', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === 'http://127.0.0.1:8000/csrf-token') {
+        return new Response(JSON.stringify({ token: 'csrf-token' }));
+      }
+
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: '' } }],
+        content: [
+          { type: 'thinking', thinking: 'private reasoning', signature: 'signed' },
+          { type: 'text', text: 'Visible ' },
+          { type: 'text', text: 'reply.' },
+        ],
+      }));
+    });
+
+    const result = await sendSillyTavernBackendRequest(
+      buildSillyTavernBackendRequest({
+        settings,
+        messages: [{ role: 'user', content: 'Hello' }],
+        characterName: 'Alice',
+        userName: 'Rober',
+      }),
+      { baseUrl: 'http://127.0.0.1:8000', fetchImpl },
+    );
+
+    expect(result).toBe('Visible reply.');
+  });
 });
