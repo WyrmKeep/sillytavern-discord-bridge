@@ -27,6 +27,7 @@ export const DEFAULT_CONFIG = {
   defaults: {
     defaultCharacterAvatarFile: '',
     maxHistoryMessages: 80,
+    contextBudgetTokens: 180000,
     maxReplyCharacters: 1800,
     includeCreatorNotes: false,
     includePostHistoryInstructions: true,
@@ -71,6 +72,7 @@ export const bridgeConfigSchema = z
     defaults: z.object({
       defaultCharacterAvatarFile: z.string().default(''),
       maxHistoryMessages: z.number().int().min(1).max(500).default(80),
+      contextBudgetTokens: z.number().int().min(1000).max(1000000).default(180000),
       maxReplyCharacters: z.number().int().min(200).max(2000).default(1800),
       includeCreatorNotes: z.boolean().default(false),
       includePostHistoryInstructions: z.boolean().default(true),

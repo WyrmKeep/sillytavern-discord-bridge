@@ -61,6 +61,7 @@ export type BridgeConfig = {
   defaults: {
     defaultCharacterAvatarFile: string;
     maxHistoryMessages: number;
+    contextBudgetTokens: number;
     maxReplyCharacters: number;
     includeCreatorNotes: boolean;
     includePostHistoryInstructions: boolean;

@@ -30,6 +30,7 @@ const config: BridgeConfig = {
   defaults: {
     defaultCharacterAvatarFile: '',
     maxHistoryMessages: 80,
+    contextBudgetTokens: 180000,
     maxReplyCharacters: 1800,
     includeCreatorNotes: false,
     includePostHistoryInstructions: true,
@@ -65,6 +66,7 @@ describe('UI settings form mapping', () => {
       adminUserIds: '666',
       sillyTavernPresetName: 'Roleplay',
       maxHistoryMessages: '80',
+      contextBudgetTokens: '180000',
       maxReplyCharacters: '1800',
       includeCreatorNotes: false,
       includePostHistoryInstructions: true,
@@ -89,6 +91,7 @@ describe('UI settings form mapping', () => {
       sillyTavernPresetName: 'Pinned Preset',
       defaultCharacterAvatarFile: 'Alice.png',
       maxHistoryMessages: '24',
+      contextBudgetTokens: '120000',
       maxReplyCharacters: '1200',
       includeCreatorNotes: true,
       includePostHistoryInstructions: false,
@@ -114,6 +117,7 @@ describe('UI settings form mapping', () => {
       sillyTavernPresetName: 'Pinned Preset',
     });
     expect(updated.defaults.maxHistoryMessages).toBe(24);
+    expect(updated.defaults.contextBudgetTokens).toBe(120000);
     expect(updated.defaults.maxReplyCharacters).toBe(1200);
     expect(updated.defaults.includeCreatorNotes).toBe(true);
     expect(updated.defaults.includePostHistoryInstructions).toBe(false);
