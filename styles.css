@@ -1,1 +1,1 @@
-#discord-bridge-extension{padding:.75rem}#discord-bridge-settings{display:block}
+.discord-bridge-settings .inline-drawer-content{display:flex;flex-direction:column;gap:.5rem;padding:.75rem}.discord-bridge-row{align-items:center;display:flex;gap:1rem;justify-content:space-between}.discord-bridge-row span:last-child{color:var(--SmartThemeEmColor);text-align:right}
