@@ -69,7 +69,7 @@ export async function fetchBridgeConfig(): Promise<BridgeConfigPayload> {
 export async function saveBridgeConfig(config: BridgeConfig): Promise<BridgeConfigPayload> {
   const response = await fetch('/api/plugins/discord-bridge/config', {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
+    headers: await jsonRequestHeaders(),
     body: JSON.stringify({ config }),
   });
   if (!response.ok) {
@@ -81,7 +81,7 @@ export async function saveBridgeConfig(config: BridgeConfig): Promise<BridgeConf
 export async function saveBridgeSecrets(input: { discordBotToken?: string }): Promise<BridgeConfigPayload> {
   const response = await fetch('/api/plugins/discord-bridge/secrets', {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
+    headers: await jsonRequestHeaders(),
     body: JSON.stringify(input),
   });
   if (!response.ok) {
@@ -102,6 +102,36 @@ function parseBridgeConfigPayload(input: unknown): BridgeConfigPayload {
   }
 
   return input as BridgeConfigPayload;
+}
+
+async function jsonRequestHeaders(): Promise<Headers> {
+  const headers = new Headers(await getSillyTavernRequestHeaders());
+  headers.set('content-type', 'application/json');
+  return headers;
+}
+
+async function getSillyTavernRequestHeaders(): Promise<HeadersInit> {
+  const globalRequestHeaders = (
+    globalThis as typeof globalThis & {
+      getRequestHeaders?: () => HeadersInit | Promise<HeadersInit>;
+    }
+  ).getRequestHeaders;
+
+  if (typeof globalRequestHeaders === 'function') {
+    return globalRequestHeaders();
+  }
+
+  try {
+    const scriptPath = '../../../../script.js';
+    const scriptModule = (await import(/* @vite-ignore */ scriptPath)) as {
+      getRequestHeaders?: () => HeadersInit | Promise<HeadersInit>;
+    };
+    return typeof scriptModule.getRequestHeaders === 'function'
+      ? scriptModule.getRequestHeaders()
+      : {};
+  } catch {
+    return {};
+  }
 }
 
 async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
