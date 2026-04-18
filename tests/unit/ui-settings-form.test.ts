@@ -41,6 +41,9 @@ const config: BridgeConfig = {
     rejectNonAllowlistedUsers: 'silent',
     attachmentMode: 'ignore-with-note',
     conversationTitleFormat: '{{character}} - {{date}}',
+    showTypingIndicator: true,
+    processingReactionEmoji: '\u{23F3}',
+    errorReactionEmoji: '\u{274C}',
   },
 };
 
@@ -72,6 +75,9 @@ describe('UI settings form mapping', () => {
       maxReplyCharacters: '1800',
       includeCreatorNotes: false,
       includePostHistoryInstructions: true,
+      showTypingIndicator: true,
+      processingReactionEmoji: '\u{23F3}',
+      errorReactionEmoji: '\u{274C}',
       profilesJson: expect.stringContaining('"123"'),
     });
   });
@@ -99,6 +105,9 @@ describe('UI settings form mapping', () => {
       includeCreatorNotes: true,
       includePostHistoryInstructions: false,
       conversationTitleFormat: '{{character}}',
+      showTypingIndicator: false,
+      processingReactionEmoji: '\u{1F914}',
+      errorReactionEmoji: '',
       profilesJson: JSON.stringify({
         'user-a': {
           enabled: true,
@@ -127,6 +136,9 @@ describe('UI settings form mapping', () => {
     expect(updated.defaults.includePostHistoryInstructions).toBe(false);
     expect(updated.defaults.defaultCharacterAvatarFile).toBe('Alice.png');
     expect(updated.behavior.conversationTitleFormat).toBe('{{character}}');
+    expect(updated.behavior.showTypingIndicator).toBe(false);
+    expect(updated.behavior.processingReactionEmoji).toBe('\u{1F914}');
+    expect(updated.behavior.errorReactionEmoji).toBe('');
     expect(updated.profiles['user-a']?.persona).toBe('Profile text.');
   });
 
