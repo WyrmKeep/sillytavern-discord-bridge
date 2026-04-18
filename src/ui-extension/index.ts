@@ -1,8 +1,12 @@
 import './styles.css';
-import { mountSettingsPanel } from './settings-panel.js';
+import { mountSettingsPanelInExtensionsMenu } from './settings-panel.js';
 
-const container = document.createElement('div');
-container.id = 'discord-bridge-extension';
-document.body.append(container);
+function initialize(): void {
+  void mountSettingsPanelInExtensionsMenu();
+}
 
-void mountSettingsPanel(container);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialize, { once: true });
+} else {
+  initialize();
+}
