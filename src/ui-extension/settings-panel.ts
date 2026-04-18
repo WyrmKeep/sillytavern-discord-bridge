@@ -1,17 +1,5 @@
 import { fetchBridgeStatus } from './api.js';
 
-type SillyTavernContext = {
-  renderExtensionTemplateAsync?: (extensionName: string, templateId: string) => Promise<string>;
-};
-
-declare global {
-  interface Window {
-    SillyTavern?: {
-      getContext?: () => SillyTavernContext;
-    };
-  }
-}
-
 type StatusNode = {
   textContent: string | null;
 };
@@ -38,7 +26,6 @@ type MenuMountOptions = SettingsPanelOptions & {
 
 export type SettingsPanelMountResult = 'mounted' | 'missing-container';
 
-const EXTENSION_FOLDER = 'third-party/discord-bridge';
 const SETTINGS_CONTAINER_ID = 'extensions_settings2';
 
 export async function mountSettingsPanelInExtensionsMenu(
@@ -75,8 +62,7 @@ async function renderSettingsTemplate(
     return renderTemplate();
   }
 
-  const context = globalThis.window?.SillyTavern?.getContext?.();
-  return context?.renderExtensionTemplateAsync?.(EXTENSION_FOLDER, 'settings');
+  return undefined;
 }
 
 function fallbackSettingsTemplate(): string {
