@@ -49,7 +49,16 @@ async function handleInteraction(
     return;
   }
 
-  if (!interaction.isChatInputCommand?.() || interaction.commandName !== 'st') {
+  if (!interaction.isChatInputCommand?.()) {
+    return;
+  }
+
+  if (interaction.commandName === 'persona') {
+    await handlePersonaCommand(interaction, runtime);
+    return;
+  }
+
+  if (interaction.commandName !== 'st') {
     return;
   }
 
@@ -59,6 +68,7 @@ async function handleInteraction(
     const characterAvatarFile = interaction.options?.getString?.('character', true);
     const result = await runtime.startNewConversation({
       discordUserId: interaction.user?.id ?? '',
+      discordDisplayName: discordDisplayName(interaction),
       characterAvatarFile,
       discord,
     });
@@ -94,6 +104,27 @@ async function handleInteraction(
       ephemeral: true,
     });
   }
+}
+
+async function handlePersonaCommand(interaction: any, runtime: BridgeRuntime): Promise<void> {
+  const subcommand = interaction.options?.getSubcommand?.();
+  if (subcommand !== 'set') {
+    return;
+  }
+
+  const displayName = String(interaction.options?.getString?.('name', true) ?? '').trim();
+  const persona = String(interaction.options?.getString?.('description', true) ?? '').trim();
+  const profile = await runtime.setPersona({
+    discordUserId: interaction.user?.id ?? '',
+    discordDisplayName: discordDisplayName(interaction),
+    displayName,
+    persona,
+  });
+
+  await interaction.reply?.({
+    content: `Persona saved for ${profile.displayName}.`,
+    ephemeral: true,
+  });
 }
 
 async function respondToCharacterAutocomplete(interaction: any, runtime: BridgeRuntime): Promise<void> {
@@ -135,8 +166,14 @@ async function handleMessage(
   await runtime.handleThreadMessage({
     threadId: String(message.channelId ?? ''),
     discordUserId: String(message.author?.id ?? ''),
+    discordDisplayName: discordDisplayName(message),
     discordMessageId: String(message.id ?? ''),
     content,
     discord,
   });
+}
+
+function discordDisplayName(value: any): string | undefined {
+  const displayName = value.member?.displayName ?? value.author?.globalName ?? value.user?.globalName ?? value.author?.username ?? value.user?.username;
+  return typeof displayName === 'string' && displayName.trim() ? displayName.trim() : undefined;
 }

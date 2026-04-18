@@ -142,6 +142,7 @@ Current command shape:
 - `/st status`: show bridge status
 - `/st character`: show the active character for the current tracked thread
 - `/st sync`: verify that the current thread maps to a bridge chat file
+- `/persona set name:<name> description:<persona>`: set the Discord user's name/persona for bridge prompts and `{{user}}` macro replacement
 
 ## Smoke Check Discord Environment
 

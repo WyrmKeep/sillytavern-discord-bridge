@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 import { createBridgeRuntime } from '../../src/server-plugin/bridge/runtime.js';
 import { resolveBridgePaths } from '../../src/server-plugin/config/paths.js';
 import { parseBridgeConfig } from '../../src/server-plugin/config/schema.js';
-import { writeConfig } from '../../src/server-plugin/config/store.js';
+import { readConfig, writeConfig } from '../../src/server-plugin/config/store.js';
 import { buildChatFilePath, parseJsonlChat } from '../../src/server-plugin/sillytavern/chats.js';
 import { readState } from '../../src/server-plugin/state/store.js';
 import { encodeSwipeCustomId } from '../../src/server-plugin/discord/components.js';
@@ -133,9 +133,54 @@ describe('bridge runtime', () => {
       content: 'Second reply.',
     });
   });
+
+  test('saves a Discord user persona into bridge config', async () => {
+    const fixture = await createRuntimeFixture();
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'unused',
+    });
+
+    const profile = await runtime.setPersona({
+      discordUserId: 'user',
+      discordDisplayName: 'Fallback Name',
+      displayName: 'Rober',
+      persona: 'Direct and technical.',
+    });
+
+    const config = await readConfig(fixture.paths.configFile);
+    expect(profile).toEqual({
+      enabled: true,
+      promptName: 'Rober',
+      displayName: 'Rober',
+      persona: 'Direct and technical.',
+    });
+    expect(config.profiles.user).toEqual(profile);
+  });
+
+  test('replaces user macros in the Discord starter message', async () => {
+    const fixture = await createRuntimeFixture({
+      firstMes: '{{char}} greets {{user}}.',
+    });
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'unused',
+    });
+
+    await runtime.startNewConversation({
+      discordUserId: 'user',
+      discordDisplayName: 'Fallback Name',
+      characterAvatarFile: 'Alice.json',
+      discord: fixture.discord,
+    });
+
+    expect(fixture.discord.createdThreads[0]?.firstMessage).toBe('Alice greets Friend.');
+  });
 });
 
-async function createRuntimeFixture() {
+async function createRuntimeFixture(options: { firstMes?: string } = {}) {
   const dataRoot = path.join(tmpdir(), `discord-bridge-runtime-${Date.now()}-${Math.random()}`);
   const paths = resolveBridgePaths(dataRoot);
   await writeConfig(
@@ -187,7 +232,7 @@ async function createRuntimeFixture() {
       data: {
         name: 'Alice',
         description: 'A test character.',
-        first_mes: 'Hello from Alice.',
+        first_mes: options.firstMes ?? 'Hello from Alice.',
       },
     }),
     'utf8',

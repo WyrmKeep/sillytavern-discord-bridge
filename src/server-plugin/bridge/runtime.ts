@@ -4,7 +4,7 @@ import {
   resolveDefaultBridgePaths,
 } from '../config/paths.js';
 import { type DiscordBridgeConfig } from '../config/schema.js';
-import { readConfig } from '../config/store.js';
+import { readConfig, writeConfig } from '../config/store.js';
 import {
   buildClaudeProxyRequest,
   sendClaudeProxyRequest,
@@ -52,6 +52,7 @@ import {
 } from '../state/store.js';
 import { createKeyedQueue, type KeyedQueue } from '../state/locks.js';
 import type { ConversationState, DiscordBridgeState } from '../state/schema.js';
+import type { PromptProfile } from '../generation/types.js';
 
 export type BridgeDiscordApi = {
   createForumThread(input: {
@@ -86,6 +87,7 @@ export type BridgeRuntimeDependencies = {
 
 export type StartNewConversationInput = {
   discordUserId: string;
+  discordDisplayName?: string;
   characterAvatarFile?: string;
   discord: BridgeDiscordApi;
 };
@@ -93,6 +95,7 @@ export type StartNewConversationInput = {
 export type ThreadMessageInput = {
   threadId: string;
   discordUserId: string;
+  discordDisplayName?: string;
   discordMessageId: string;
   content: string;
   discord: BridgeDiscordApi;
@@ -109,6 +112,13 @@ export type SwipeInput = {
   discord: BridgeDiscordApi;
 };
 
+export type SetPersonaInput = {
+  discordUserId: string;
+  discordDisplayName?: string;
+  displayName: string;
+  persona: string;
+};
+
 export type SwipeResult =
   | { kind: 'ignored' }
   | { kind: 'updated'; selectedIndex: number; total: number }
@@ -123,6 +133,7 @@ export type BridgeRuntime = {
   }>;
   handleThreadMessage(input: ThreadMessageInput): Promise<ThreadMessageResult>;
   handleSwipe(input: SwipeInput): Promise<SwipeResult>;
+  setPersona(input: SetPersonaInput): Promise<PromptProfile>;
 };
 
 export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}): BridgeRuntime {
@@ -150,9 +161,15 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
         config,
         input.characterAvatarFile || config.defaults.defaultCharacterAvatarFile,
       );
+      const userName = profileDisplayName(config, input.discordUserId, input.discordDisplayName);
       const createdAt = now().toISOString();
       const title = normalizeThreadTitle(formatConversationTitle(config, character, now()));
-      const starterMessages = splitDiscordMessage(character.firstMes || `${character.name} is ready to begin.`);
+      const firstMes = applyCharacterMacros(
+        character.firstMes || `${character.name} is ready to begin.`,
+        character.name,
+        userName,
+      );
+      const starterMessages = splitDiscordMessage(firstMes);
       const thread = await input.discord.createForumThread({
         forumChannelId: config.discord.forumChannelId,
         title,
@@ -170,7 +187,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
         starterMessageId: thread.starterMessageId,
         characterAvatarFile: character.characterAvatarFile,
         characterName: character.name,
-        firstMes: character.firstMes,
+        firstMes,
         createdByDiscordUserId: input.discordUserId,
         createdAt,
       });
@@ -207,7 +224,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
             discordUserId: input.discordUserId,
             discordMessageId: input.discordMessageId,
             discordThreadId: input.threadId,
-            promptName: profilePromptName(config, input.discordUserId),
+            promptName: profilePromptName(config, input.discordUserId, input.discordDisplayName),
             content: input.content,
             sendDate: now().toISOString(),
           },
@@ -220,7 +237,14 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
           generate: async () =>
             dependencies.generateReply
               ? dependencies.generateReply({ config, character, chat: loaded.chat })
-              : generateWithSillyTavernSettings(paths, config, character, loaded.chat),
+              : generateWithSillyTavernSettings(
+                paths,
+                config,
+                character,
+                loaded.chat,
+                input.discordUserId,
+                input.discordDisplayName,
+              ),
         });
         const sent = await sendAssistantReply(input.discord, input.threadId, bridgeMessageId, result.reply);
         const assistant = findAssistantMessageByBridgeId(loaded.chat, bridgeMessageId);
@@ -275,6 +299,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
               config,
               character,
               chatBeforeAssistant(loaded.chat, decoded.bridgeMessageId),
+              input.discordUserId,
             ));
           assistant.swipes.push(reply);
           assistant.swipe_info.push({
@@ -309,6 +334,28 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
         return { kind: 'updated', selectedIndex, total };
       });
     },
+    setPersona: async (input) => {
+      const config = await readBridgeConfig(paths);
+      if (checkAllowlist(input.discordUserId, config.access.allowlistedUserIds) === 'ignore') {
+        throw new Error('Discord user is not allowlisted.');
+      }
+
+      const displayName = input.displayName.trim() || input.discordDisplayName?.trim() || 'Discord User';
+      const profile: PromptProfile = {
+        enabled: true,
+        promptName: displayName,
+        displayName,
+        persona: input.persona.trim(),
+      };
+      await writeConfig(paths.configFile, {
+        ...config,
+        profiles: {
+          ...config.profiles,
+          [input.discordUserId]: profile,
+        },
+      });
+      return profile;
+    },
   };
 }
 
@@ -317,6 +364,8 @@ async function generateWithSillyTavernSettings(
   config: DiscordBridgeConfig,
   character: BridgeCharacter,
   chat: ChatDocument,
+  activeDiscordUserId?: string,
+  activeDiscordDisplayName?: string,
 ): Promise<string> {
   const directories = userDirectories(paths, config);
   const rawSettings = await readSillyTavernSettingsFile(directories.settings);
@@ -324,6 +373,8 @@ async function generateWithSillyTavernSettings(
   const prompt = buildBridgePrompt({
     character,
     profiles: config.profiles,
+    activeDiscordUserId,
+    activeDiscordDisplayName,
     chat,
     options: config.defaults,
   });
@@ -396,9 +447,22 @@ async function updateState(
   await writeState(paths.stateFile, state);
 }
 
-function profilePromptName(config: DiscordBridgeConfig, discordUserId: string): string {
+function profilePromptName(
+  config: DiscordBridgeConfig,
+  discordUserId: string,
+  discordDisplayName?: string,
+): string {
   const profile = config.profiles[discordUserId];
-  return profile?.enabled ? profile.promptName : 'Discord User';
+  return profile?.enabled ? profile.promptName : discordDisplayName || 'Discord User';
+}
+
+function profileDisplayName(
+  config: DiscordBridgeConfig,
+  discordUserId: string,
+  discordDisplayName?: string,
+): string {
+  const profile = config.profiles[discordUserId];
+  return profile?.enabled ? profile.displayName || profile.promptName : discordDisplayName || 'Discord User';
 }
 
 function formatConversationTitle(
@@ -416,4 +480,10 @@ function chatBeforeAssistant(chat: ChatDocument, bridgeMessageId: string): ChatD
     (message) => message.extra?.discord_bridge?.bridge_message_id === bridgeMessageId,
   );
   return index >= 0 ? chat.slice(0, index) : chat;
+}
+
+function applyCharacterMacros(value: string, characterName: string, userName: string): string {
+  return value
+    .replace(/\{\{char\}\}/giu, characterName)
+    .replace(/\{\{user\}\}/giu, userName);
 }

@@ -100,6 +100,63 @@ describe('prompt builder', () => {
     ]);
   });
 
+  test('replaces user macros and injects active persona in prompt material', () => {
+    const macroCharacter: BridgeCharacter = {
+      ...character,
+      description: '{{char}} trusts {{user}}.',
+      scenario: '{{user}} is speaking with {{char}}.',
+      mesExample: '{{user}}: hi\n{{char}}: hello',
+      postHistoryInstructions: 'Address {{user}} directly.',
+    };
+    const chat = createChatDocument({
+      guildId: 'guild',
+      forumChannelId: 'forum',
+      threadId: 'thread',
+      characterAvatarFile: 'Alice.png',
+      chatFolderName: 'Alice',
+      createdByDiscordUserId: 'user',
+      createdAt: '2026-04-17T12:00:00.000Z',
+    });
+    appendUserMessage(chat, {
+      name: 'Display',
+      mes: 'My name is {{user}}.',
+      sendDate: '2026-04-17T12:00:01.000Z',
+      discordUserId: 'user',
+      discordMessageId: 'msg',
+      discordThreadId: 'thread',
+    });
+
+    const prompt = buildBridgePrompt({
+      character: macroCharacter,
+      profiles: {
+        user: {
+          enabled: true,
+          promptName: 'Human',
+          displayName: 'Rober',
+          persona: '{{user}} is direct and technical.',
+        },
+      },
+      activeDiscordUserId: 'user',
+      chat,
+      options: {
+        includeCreatorNotes: false,
+        includePostHistoryInstructions: true,
+        maxHistoryMessages: 80,
+        maxReplyCharacters: 1000,
+      },
+    });
+
+    const systemText = prompt.system.join('\n');
+    expect(systemText).toContain('Alice trusts Rober.');
+    expect(systemText).toContain('Rober is speaking with Alice.');
+    expect(systemText).toContain('Rober is direct and technical.');
+    expect(systemText).toContain('Address Rober directly.');
+    expect(prompt.messages[0]).toEqual({
+      role: 'user',
+      content: 'Human: My name is Rober.',
+    });
+  });
+
   test('uses a documented fallback for empty first messages', () => {
     expect(fallbackStarterMessage(character)).toBe('Alice is ready to begin.');
   });

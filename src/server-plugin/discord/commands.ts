@@ -53,3 +53,35 @@ export function buildGuildCommandData(): DiscordCommandData {
     ],
   };
 }
+
+export function buildPersonaCommandData(): DiscordCommandData {
+  return {
+    name: 'persona',
+    description: 'Manage your Discord Bridge persona.',
+    options: [
+      {
+        type: SUB_COMMAND,
+        name: 'set',
+        description: 'Set the name and persona used for SillyTavern user macros.',
+        options: [
+          {
+            type: STRING,
+            name: 'name',
+            description: 'Name used for {{user}}.',
+            required: true,
+          },
+          {
+            type: STRING,
+            name: 'description',
+            description: 'Persona description sent in the prompt.',
+            required: true,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export function buildGuildCommandsData(): DiscordCommandData[] {
+  return [buildGuildCommandData(), buildPersonaCommandData()];
+}

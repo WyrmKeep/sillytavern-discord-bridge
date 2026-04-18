@@ -11,10 +11,6 @@ export type ClaudeProxyRequestBody = {
   top_p?: number;
   top_k?: number;
   stream: false;
-  metadata?: {
-    reasoning_effort: string;
-    verbosity: string;
-  };
 };
 
 export type ClaudeProxyRequest = {
@@ -52,10 +48,6 @@ export function buildClaudeProxyRequest(
     max_tokens: settings.maxTokens,
     messages,
     stream: false,
-    metadata: {
-      reasoning_effort: settings.reasoningEffort,
-      verbosity: settings.verbosity,
-    },
   };
 
   if (settings.useSystemPrompt && prompt.system.length > 0) {

@@ -40,6 +40,7 @@ Slash commands available in v1:
 - `/st status` confirms the bot command handler is reachable.
 - `/st character` reports the mapped SillyTavern character for the current bridge thread.
 - `/st sync` reports the mapped chat folder/file for the current bridge thread.
+- `/persona set name:<name> description:<persona>` stores your Discord Bridge persona and uses `name` for `{{user}}` macro replacement.
 
 The `character` option autocompletes from the configured SillyTavern user's character cards.
 
