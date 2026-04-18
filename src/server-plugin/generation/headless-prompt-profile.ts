@@ -51,6 +51,13 @@ type MacroContext = {
   characterName: string;
   userName: string;
   systemPrompt: string;
+  description: string;
+  persona: string;
+  personality: string;
+  scenario: string;
+  mesExample: string;
+  firstMessage: string;
+  postHistoryInstructions: string;
 };
 
 export class HeadlessPromptProfileError extends Error {
@@ -358,6 +365,13 @@ function resolveMacroContext(input: BuildHeadlessPromptMessagesInput): MacroCont
     characterName: input.character.name,
     userName,
     systemPrompt: input.character.systemPrompt,
+    description: input.character.description,
+    persona: profile?.enabled ? profile.persona : '',
+    personality: input.character.personality,
+    scenario: input.character.scenario,
+    mesExample: input.character.mesExample,
+    firstMessage: input.character.firstMes,
+    postHistoryInstructions: input.character.postHistoryInstructions,
   };
 }
 
@@ -369,11 +383,46 @@ function activePersona(input: BuildHeadlessPromptMessagesInput): string {
 }
 
 function applyMacros(value: string, context: MacroContext): string {
+  let result = value;
+
+  for (let index = 0; index < 5; index += 1) {
+    const next = applyMacroPass(result, context);
+    if (next === result) {
+      return next;
+    }
+    result = next;
+  }
+
+  return result;
+}
+
+function applyMacroPass(value: string, context: MacroContext): string {
   return value
+    .replace(/\{\{\/\/[\s\S]*?\}\}/gu, '')
+    .replace(/\{\{random:([^{}]*)\}\}/giu, (_match, options: string) => chooseRandomMacroOption(options))
     .replace(/\{\{char\}\}/giu, context.characterName)
     .replace(/\{\{charIfNotGroup\}\}/giu, context.characterName)
     .replace(/\{\{user\}\}/giu, context.userName)
+    .replace(/\{\{description\}\}/giu, context.description)
+    .replace(/\{\{persona\}\}/giu, context.persona)
+    .replace(/\{\{personality\}\}/giu, context.personality)
+    .replace(/\{\{scenario\}\}/giu, context.scenario)
+    .replace(/\{\{mes_example\}\}/giu, context.mesExample)
+    .replace(/\{\{first_mes\}\}/giu, context.firstMessage)
+    .replace(/\{\{post_history_instructions\}\}/giu, context.postHistoryInstructions)
     .replace(/\{\{system\}\}/giu, context.systemPrompt);
+}
+
+function chooseRandomMacroOption(options: string): string {
+  const values = options
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  if (values.length === 0) {
+    return '';
+  }
+
+  return values[Math.floor(Math.random() * values.length)] ?? '';
 }
 
 function sanitizePresetName(value: string): string {
