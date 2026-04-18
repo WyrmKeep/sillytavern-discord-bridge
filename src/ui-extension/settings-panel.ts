@@ -58,9 +58,9 @@ export async function mountSettingsPanel(
   container: SettingsPanelContainer,
   options: SettingsPanelOptions = {},
 ): Promise<void> {
-  const template = (await renderSettingsTemplate(options.renderTemplate)) ?? fallbackSettingsTemplate();
+  const template = await renderSettingsTemplate(options.renderTemplate).catch(() => undefined);
 
-  container.insertAdjacentHTML('beforeend', template);
+  container.insertAdjacentHTML('beforeend', template ?? fallbackSettingsTemplate());
   const status = await (options.fetchStatus ?? fetchBridgeStatus)().catch(() => ({ ok: false }));
   const statusNode = container.querySelector('[data-status]');
   if (statusNode) {

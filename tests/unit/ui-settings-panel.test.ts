@@ -50,4 +50,20 @@ describe('UI settings panel', () => {
 
     expect(result).toBe('missing-container');
   });
+
+  test('falls back to built-in template when SillyTavern template loading fails', async () => {
+    const settingsRoot = new FakeElement();
+
+    await mountSettingsPanelInExtensionsMenu({
+      documentRef: new FakeDocument(settingsRoot),
+      renderTemplate: async () => {
+        throw new Error('404 Not Found');
+      },
+      fetchStatus: async () => ({ ok: false }),
+    });
+
+    expect(settingsRoot.html).toContain('discord-bridge-settings');
+    expect(settingsRoot.html).toContain('inline-drawer');
+    expect(settingsRoot.statusNode.textContent).toBe('Plugin unavailable');
+  });
 });
