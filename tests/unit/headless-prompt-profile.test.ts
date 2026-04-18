@@ -125,6 +125,80 @@ describe('headless prompt profile', () => {
       'Jailbreak after history for Alice.\nCard post-history instruction.',
     ]);
   });
+
+  test('expands ST-style card and persona macros inside preset prompt text', () => {
+    const chat = createChatDocument({
+      guildId: 'guild',
+      forumChannelId: 'forum',
+      threadId: 'thread',
+      characterAvatarFile: 'Alice.png',
+      chatFolderName: 'Alice',
+      createdByDiscordUserId: 'user',
+      createdAt: '2026-04-18T12:00:00.000Z',
+    });
+
+    const messages = buildHeadlessPromptMessages({
+      preset: {
+        raw: {
+          prompts: [
+            {
+              identifier: 'main',
+              role: 'system',
+              content: [
+                '{Description}',
+                '{{description}}',
+                "{Human's avatar}",
+                '{{persona}}',
+                'Personality={{personality}}',
+                'Scenario={{scenario}}',
+                'Examples={{mes_example}}',
+                'Greeting={{first_mes}}',
+                'PHI={{post_history_instructions}}',
+                'System={{system}}',
+                'Range={{random:240,240,240}}',
+                'Before{{// private preset comment }}After',
+              ].join('\n'),
+            },
+          ],
+          prompt_order: [{ identifier: 'main', enabled: true }],
+        },
+        filePath: 'preset.json',
+      },
+      character,
+      profiles: {
+        user: {
+          enabled: true,
+          promptName: 'Rober',
+          displayName: 'Rober',
+          persona: '{{user}} is direct and technical.',
+        },
+      },
+      activeDiscordUserId: 'user',
+      activeDiscordDisplayName: 'Fallback',
+      chat,
+      options: {
+        defaultCharacterAvatarFile: 'Alice.png',
+        includeCreatorNotes: false,
+        includePostHistoryInstructions: true,
+        maxHistoryMessages: 80,
+        maxReplyCharacters: 1800,
+      },
+    });
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.content).toContain('{Description}\nCharacter sheet for Alice and Rober.');
+    expect(messages[0]?.content).toContain("{Human's avatar}\nRober is direct and technical.");
+    expect(messages[0]?.content).toContain('Personality=Careful.');
+    expect(messages[0]?.content).toContain('Scenario=Private scene.');
+    expect(messages[0]?.content).toContain('Examples=Rober: example\nAlice: reply');
+    expect(messages[0]?.content).toContain('Greeting=Hello.');
+    expect(messages[0]?.content).toContain('PHI=Card post-history instruction.');
+    expect(messages[0]?.content).toContain('System=Character system override.');
+    expect(messages[0]?.content).toContain('Range=240');
+    expect(messages[0]?.content).toContain('BeforeAfter');
+    expect(messages[0]?.content).not.toContain('{{');
+    expect(messages[0]?.content).not.toContain('private preset comment');
+  });
 });
 
 async function fixtureDataRoot(): Promise<string> {
