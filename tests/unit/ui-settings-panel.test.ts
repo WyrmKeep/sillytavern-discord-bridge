@@ -91,4 +91,5 @@ describe('UI settings panel', () => {
     expect(renderExtensionTemplateAsync).not.toHaveBeenCalled();
     expect(settingsRoot.html).toContain('discord-bridge-settings');
   });
+
 });

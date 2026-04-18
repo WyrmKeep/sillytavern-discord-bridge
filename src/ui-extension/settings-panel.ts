@@ -173,8 +173,8 @@ function bindSettingsForm(
       setInputValue(form, 'discordBotToken', '');
       setStatus(status, `Token ${payload.secrets.discordBotToken ?? '<missing>'}`);
     })
-    .catch(() => {
-      setStatus(status, 'Config unavailable');
+    .catch((error: unknown) => {
+      setStatus(status, errorMessage(error));
     });
 
   form.addEventListener('submit', (event) => {
@@ -195,8 +195,8 @@ function bindSettingsForm(
         populateForm(form, configToFormValues(finalPayload.config));
         setInputValue(form, 'discordBotToken', '');
         setStatus(status, 'Saved');
-      } catch {
-        setStatus(status, 'Save failed');
+      } catch (error) {
+        setStatus(status, errorMessage(error));
       }
     })();
   });
@@ -261,4 +261,8 @@ function setStatus(status: StatusNode | null, text: string): void {
   if (status) {
     status.textContent = text;
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Config unavailable';
 }

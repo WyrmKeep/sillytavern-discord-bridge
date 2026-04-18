@@ -63,7 +63,7 @@ export async function fetchBridgeConfig(): Promise<BridgeConfigPayload> {
   if (!response.ok) {
     throw new Error(`Bridge config failed: ${response.status}`);
   }
-  return (await response.json()) as BridgeConfigPayload;
+  return parseBridgeConfigPayload(await response.json());
 }
 
 export async function saveBridgeConfig(config: BridgeConfig): Promise<BridgeConfigPayload> {
@@ -73,9 +73,9 @@ export async function saveBridgeConfig(config: BridgeConfig): Promise<BridgeConf
     body: JSON.stringify({ config }),
   });
   if (!response.ok) {
-    throw new Error(`Bridge config save failed: ${response.status}`);
+    throw new Error(await responseErrorMessage(response, 'Bridge config save failed'));
   }
-  return (await response.json()) as BridgeConfigPayload;
+  return parseBridgeConfigPayload(await response.json());
 }
 
 export async function saveBridgeSecrets(input: { discordBotToken?: string }): Promise<BridgeConfigPayload> {
@@ -85,7 +85,34 @@ export async function saveBridgeSecrets(input: { discordBotToken?: string }): Pr
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(`Bridge secrets save failed: ${response.status}`);
+    throw new Error(await responseErrorMessage(response, 'Bridge secrets save failed'));
   }
-  return (await response.json()) as BridgeConfigPayload;
+  return parseBridgeConfigPayload(await response.json());
+}
+
+function parseBridgeConfigPayload(input: unknown): BridgeConfigPayload {
+  if (
+    typeof input !== 'object' ||
+    input === null ||
+    !('config' in input) ||
+    typeof (input as { config?: unknown }).config !== 'object' ||
+    (input as { config?: unknown }).config === null
+  ) {
+    throw new Error('Server plugin needs update: /config did not return bridge settings.');
+  }
+
+  return input as BridgeConfigPayload;
+}
+
+async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await response.json()) as { reason?: unknown };
+    if (typeof body.reason === 'string' && body.reason) {
+      return body.reason;
+    }
+  } catch {
+    // Ignore parse errors and fall back to a status-based message.
+  }
+
+  return `${fallback}: ${response.status}`;
 }
