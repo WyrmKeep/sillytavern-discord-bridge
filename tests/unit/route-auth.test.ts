@@ -25,6 +25,17 @@ describe('plugin route authorization', () => {
     ).toMatchObject({ ok: false });
   });
 
+  test('allows account-disabled same-origin mutating requests from private Tailscale address', () => {
+    expect(
+      authorizePluginRoute({
+        method: 'PUT',
+        accountMode: 'disabled',
+        origin: 'same-origin',
+        remoteAddress: '100.110.207.108',
+      }),
+    ).toEqual({ ok: true });
+  });
+
   test('allows non-UI mutating request with plugin token', () => {
     expect(
       authorizePluginRoute({

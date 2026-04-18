@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { detectSillyTavernRoot } from '../sillytavern/imports.js';
 
 export type BridgePaths = {
   dataRoot: string;
@@ -17,4 +18,9 @@ export function resolveBridgePaths(dataRoot: string): BridgePaths {
     secretsFile: path.join(bridgeRoot, 'secrets.json'),
     stateFile: path.join(bridgeRoot, 'state.json'),
   };
+}
+
+export function resolveDefaultBridgePaths(): BridgePaths {
+  const dataRoot = process.env.SILLYTAVERN_DATA_ROOT ?? path.join(detectSillyTavernRoot(), 'data');
+  return resolveBridgePaths(dataRoot);
 }
