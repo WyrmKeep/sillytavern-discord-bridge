@@ -17,6 +17,7 @@ const config: BridgeConfig = {
     createForumIfMissing: false,
     forumName: 'SillyTavern',
     defaultForumTagIds: ['444'],
+    exposedCharacterTags: ['discord'],
   },
   access: {
     allowlistedUserIds: ['555'],
@@ -62,6 +63,7 @@ describe('UI settings form mapping', () => {
       guildId: '222',
       forumChannelId: '333',
       defaultForumTagIds: '444',
+      exposedCharacterTags: 'discord',
       allowlistedUserIds: '555',
       adminUserIds: '666',
       sillyTavernPresetName: 'Roleplay',
@@ -86,6 +88,7 @@ describe('UI settings form mapping', () => {
       guildId: '888',
       forumChannelId: '999',
       defaultForumTagIds: 'tag-a tag-b',
+      exposedCharacterTags: 'discord private',
       allowlistedUserIds: 'user-a,user-b',
       adminUserIds: 'admin-a',
       sillyTavernPresetName: 'Pinned Preset',
@@ -110,6 +113,7 @@ describe('UI settings form mapping', () => {
     expect(updated.sillyTavernUserHandle).toBe('alice');
     expect(updated.discord.clientId).toBe('777');
     expect(updated.discord.defaultForumTagIds).toEqual(['tag-a', 'tag-b']);
+    expect(updated.discord.exposedCharacterTags).toEqual(['discord', 'private']);
     expect(updated.access.allowlistedUserIds).toEqual(['user-a', 'user-b']);
     expect(updated.access.adminUserIds).toEqual(['admin-a']);
     expect(updated.generation).toEqual({

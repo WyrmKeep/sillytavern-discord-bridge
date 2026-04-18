@@ -107,6 +107,7 @@ describe('UI settings panel', () => {
     expect(settingsRoot.html).toContain('discord-bridge-field');
     expect(settingsRoot.html).toContain('data-st-settings-status');
     expect(settingsRoot.html).toContain('data-field="sillyTavernPresetName"');
+    expect(settingsRoot.html).toContain('data-field="exposedCharacterTags"');
     expect(settingsRoot.html).toContain('data-field="maxHistoryMessages"');
     expect(settingsRoot.html).toContain('data-field="contextBudgetTokens"');
     expect(settingsRoot.html).toContain('data-field="maxReplyCharacters"');

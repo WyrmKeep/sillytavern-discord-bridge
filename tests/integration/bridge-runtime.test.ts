@@ -47,6 +47,72 @@ describe('bridge runtime', () => {
     });
   });
 
+  test('lists only characters with configured exposed SillyTavern tags', async () => {
+    const fixture = await createRuntimeFixture({ exposedCharacterTags: ['discord'] });
+    await writeCharacter(fixture.paths.dataRoot, 'Bob.json', 'Bob');
+    await writeTags(fixture.paths.dataRoot, {
+      'Alice.json': ['tag-discord'],
+      'Bob.json': ['tag-private'],
+    });
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'unused',
+    });
+
+    await expect(runtime.listCharacters()).resolves.toEqual([
+      expect.objectContaining({ characterAvatarFile: 'Alice.json' }),
+    ]);
+  });
+
+  test('rejects manually entered unexposed character filenames for new conversations', async () => {
+    const fixture = await createRuntimeFixture({ exposedCharacterTags: ['discord'] });
+    await writeCharacter(fixture.paths.dataRoot, 'Bob.json', 'Bob');
+    await writeTags(fixture.paths.dataRoot, {
+      'Alice.json': ['tag-discord'],
+      'Bob.json': ['tag-private'],
+    });
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'unused',
+    });
+
+    await expect(runtime.startNewConversation({
+      discordUserId: 'user',
+      characterAvatarFile: 'Bob.json',
+      discord: fixture.discord,
+    })).rejects.toThrow(/not exposed/i);
+  });
+
+  test('continues existing conversations after the exposed tag is removed', async () => {
+    const fixture = await createRuntimeFixture({ exposedCharacterTags: ['discord'] });
+    await writeTags(fixture.paths.dataRoot, {
+      'Alice.json': ['tag-discord'],
+    });
+    const runtime = createBridgeRuntime({
+      paths: fixture.paths,
+      now: () => new Date('2026-04-18T12:00:00.000Z'),
+      generateReply: async () => 'Hi after tag removal.',
+    });
+    const conversation = await runtime.startNewConversation({
+      discordUserId: 'user',
+      characterAvatarFile: 'Alice.json',
+      discord: fixture.discord,
+    });
+    await writeTags(fixture.paths.dataRoot, {});
+
+    const result = await runtime.handleThreadMessage({
+      threadId: conversation.threadId,
+      discordUserId: 'user',
+      discordMessageId: 'user-message-1',
+      content: 'Still there?',
+      discord: fixture.discord,
+    });
+
+    expect(result).toMatchObject({ kind: 'replied', reply: 'Hi after tag removal.' });
+  });
+
   test('saves user and assistant messages for a mapped thread', async () => {
     const fixture = await createRuntimeFixture();
     const runtime = createBridgeRuntime({
@@ -234,7 +300,11 @@ describe('bridge runtime', () => {
   });
 });
 
-async function createRuntimeFixture(options: { firstMes?: string; presetName?: string } = {}) {
+async function createRuntimeFixture(options: {
+  firstMes?: string;
+  presetName?: string;
+  exposedCharacterTags?: string[];
+} = {}) {
   const dataRoot = path.join(tmpdir(), `discord-bridge-runtime-${Date.now()}-${Math.random()}`);
   const paths = resolveBridgePaths(dataRoot);
   await writeConfig(
@@ -250,6 +320,7 @@ async function createRuntimeFixture(options: { firstMes?: string; presetName?: s
         createForumIfMissing: false,
         forumName: 'SillyTavern',
         defaultForumTagIds: ['tag'],
+        exposedCharacterTags: options.exposedCharacterTags ?? [],
       },
       access: {
         allowlistedUserIds: ['user'],
@@ -282,22 +353,47 @@ async function createRuntimeFixture(options: { firstMes?: string; presetName?: s
       },
     }),
   );
+  await writeCharacter(dataRoot, 'Alice.json', 'Alice', options.firstMes ?? 'Hello from Alice.');
+
+  const discord = new FakeDiscordApi();
+  return { paths, discord };
+}
+
+async function writeCharacter(
+  dataRoot: string,
+  avatarFile: string,
+  name: string,
+  firstMes = `Hello from ${name}.`,
+): Promise<void> {
   const charactersDir = path.join(dataRoot, 'default-user', 'characters');
   await mkdir(charactersDir, { recursive: true });
   await writeFile(
-    path.join(charactersDir, 'Alice.json'),
+    path.join(charactersDir, avatarFile),
     JSON.stringify({
       data: {
-        name: 'Alice',
-        description: 'A test character.',
-        first_mes: options.firstMes ?? 'Hello from Alice.',
+        name,
+        description: `A test character named ${name}.`,
+        first_mes: firstMes,
       },
     }),
     'utf8',
   );
+}
 
-  const discord = new FakeDiscordApi();
-  return { paths, discord };
+async function writeTags(dataRoot: string, tagMap: Record<string, string[]>): Promise<void> {
+  const userRoot = path.join(dataRoot, 'default-user');
+  await mkdir(userRoot, { recursive: true });
+  await writeFile(
+    path.join(userRoot, 'tags.json'),
+    JSON.stringify({
+      tags: [
+        { id: 'tag-discord', name: 'Discord' },
+        { id: 'tag-private', name: 'Private' },
+      ],
+      tag_map: tagMap,
+    }),
+    'utf8',
+  );
 }
 
 async function writeHeadlessGenerationFixtures(dataRoot: string): Promise<void> {
