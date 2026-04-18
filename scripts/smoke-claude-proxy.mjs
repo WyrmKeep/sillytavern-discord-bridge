@@ -1,5 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { buildClaudeProxyRequest } from '../dist/server-plugin/generation/claude-reverse-proxy.js';
+import {
+  buildSillyTavernBackendRequest,
+  sendSillyTavernBackendRequest,
+} from '../dist/server-plugin/generation/st-backend-generation.js';
 import { normalizeSillyTavernClaudeSettings } from '../dist/server-plugin/sillytavern/settings.js';
 
 if (process.env.DISCORD_BRIDGE_SMOKE !== '1') {
@@ -15,26 +18,20 @@ if (!settingsFile) {
 
 const rawSettings = JSON.parse(await readFile(settingsFile, 'utf8'));
 const settings = normalizeSillyTavernClaudeSettings(rawSettings);
-const request = buildClaudeProxyRequest(
-  { ...settings, maxTokens: 8, temperature: 0, topP: 1, assistantPrefill: undefined },
-  { system: [], messages: [{ role: 'user', content: 'Reply with exactly: ok' }] },
-);
-
-const response = await fetch(request.url, {
-  method: 'POST',
-  headers: request.headers,
-  body: JSON.stringify(request.body),
+const request = buildSillyTavernBackendRequest({
+  settings: { ...settings, maxTokens: 8, temperature: 0, topP: 1, assistantPrefill: undefined },
+  messages: [{ role: 'user', content: 'Reply with exactly: ok' }],
+  characterName: 'Smoke',
+  userName: 'Tester',
 });
 
-const text = await response.text();
-if (!response.ok) {
-  console.error(`Claude proxy smoke failed: ${response.status} ${text.slice(0, 200)}`);
-  process.exit(1);
-}
+const text = await sendSillyTavernBackendRequest(request, {
+  baseUrl: process.env.SILLYTAVERN_BASE_URL,
+});
 
 if (!text.toLowerCase().includes('ok')) {
-  console.error(`Claude proxy smoke response did not include ok: ${text.slice(0, 200)}`);
+  console.error(`SillyTavern backend smoke response did not include ok: ${text.slice(0, 200)}`);
   process.exit(1);
 }
 
-console.log('Claude proxy smoke passed.');
+console.log('SillyTavern backend smoke passed.');

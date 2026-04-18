@@ -131,6 +131,7 @@ Minimum config values for a private two-user setup:
 - `discord.defaultForumTagIds`: required only when the forum requires tags
 - `access.allowlistedUserIds`: the two Discord user IDs allowed to use the bridge
 - `access.adminUserIds`: Discord users allowed to run admin/status commands
+- `generation.sillyTavernPresetName`: saved Chat Completion preset filename without `.json`
 - `profiles`: fixed Discord-to-persona mappings
 
 Minimum secret:
@@ -148,16 +149,23 @@ The bridge reads SillyTavern's configured Chat Completion settings instead of ow
 - reverse proxy configured
 - model `claude-sonnet-4-6`
 
-Run the guarded Claude smoke test only from a trusted local shell:
+Also confirm the pinned prompt preset exists:
+
+```text
+{DATA_ROOT}/{handle}/OpenAI Settings/{generation.sillyTavernPresetName}.json
+```
+
+Run the guarded SillyTavern backend smoke test only from a trusted local shell:
 
 ```powershell
 npm run build
 $env:DISCORD_BRIDGE_SMOKE = "1"
 $env:SILLYTAVERN_SETTINGS_FILE = "C:\Path\To\SillyTavern\data\default-user\settings.json"
+$env:SILLYTAVERN_BASE_URL = "http://127.0.0.1:8000"
 npm run smoke:claude-proxy
 ```
 
-The reverse proxy may return `404` for `GET /` or `GET /models`. That does not prove failure. The bridge smoke test uses `POST {reverse_proxy}/messages`.
+The reverse proxy may return `404` for `GET /` or `GET /models`. That does not prove failure. The bridge smoke test posts through SillyTavern's local `/api/backends/chat-completions/generate` route, which then uses the configured reverse proxy.
 
 ## Update Flow
 
@@ -187,11 +195,12 @@ UI extension does not appear:
 - Confirm `manifest.json` was copied.
 - Hard-refresh the SillyTavern browser tab.
 
-Claude smoke test fails:
+Generation smoke test fails:
 
 - Confirm SillyTavern is configured for Chat Completion, not another API mode.
 - Confirm the Claude source and model are selected.
-- Confirm your reverse proxy accepts `POST /messages`.
+- Confirm `SILLYTAVERN_BASE_URL` points to the local SillyTavern origin.
+- Confirm your reverse proxy accepts requests from SillyTavern's Chat Completion backend.
 - Do not commit the real proxy URL or live probe output.
 
 Bridge-created chats are not visible in SillyTavern:

@@ -2,7 +2,7 @@
 
 SillyTavern server plugin and UI extension for running a private two-user Discord forum RP bridge.
 
-The bridge reuses SillyTavern's configured Chat Completion > Claude reverse proxy settings and saves Discord conversations as SillyTavern-compatible chats.
+The bridge loads a pinned SillyTavern Chat Completion preset headlessly, sends generation through SillyTavern's Chat Completion backend path, and saves Discord conversations as SillyTavern-compatible chats.
 
 See:
 
@@ -13,3 +13,5 @@ See:
 - `SECURITY.md`
 
 The SillyTavern Git extension installer can install only the browser UI extension. Use the `st-ui-extension` branch for that installer, then install the server plugin locally from this repository as described in `docs/install-local.md`.
+
+Headless deployments do not need a SillyTavern browser tab open. The configured preset must exist at `data/<userHandle>/OpenAI Settings/<presetName>.json`, where `presetName` is entered without the `.json` suffix.

@@ -8,4 +8,5 @@
 - Streaming Discord replies.
 - Public internet deployment.
 - Alternate greeting selection.
-- Full browser Prompt Manager parity.
+- Live browser-only extension prompt state.
+- Exact SillyTavern frontend token-budget parity.

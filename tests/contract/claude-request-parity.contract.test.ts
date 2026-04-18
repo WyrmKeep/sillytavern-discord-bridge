@@ -1,19 +1,20 @@
 import { describe, expect, test } from 'vitest';
-import { buildClaudeProxyRequest } from '../../src/server-plugin/generation/claude-reverse-proxy.js';
+import { buildSillyTavernBackendRequest } from '../../src/server-plugin/generation/st-backend-generation.js';
 import type { SillyTavernClaudeSettings } from '../../src/server-plugin/sillytavern/settings.js';
 
 describe('Claude request parity contract', () => {
-  test('captures supported Claude 4.6 fields', () => {
+  test('captures supported Claude 4.6 fields delegated through ST backend generation', () => {
     const settings: SillyTavernClaudeSettings = {
       mainApi: 'openai',
       chatCompletionSource: 'claude',
       reverseProxy: 'http://example.invalid/v1',
+      proxyPassword: 'secret',
       model: 'claude-sonnet-4-6',
       maxTokens: 300,
       temperature: 1,
       topP: 1,
       topK: 20,
-      assistantPrefill: undefined,
+      assistantPrefill: 'Prefill',
       stopSequences: ['STOP'],
       stream: false,
       originalStreamOpenAI: false,
@@ -22,17 +23,21 @@ describe('Claude request parity contract', () => {
       verbosity: 'auto',
     };
 
-    const request = buildClaudeProxyRequest(settings, {
-      system: ['System'],
+    const request = buildSillyTavernBackendRequest({
+      settings,
       messages: [{ role: 'user', content: 'Hello' }],
+      characterName: 'Alice',
+      userName: 'Rober',
     });
 
-    expect(request.url).toBe('http://example.invalid/v1/messages');
-    expect(request.body.stop_sequences).toEqual(['STOP']);
+    expect(request.path).toBe('/api/backends/chat-completions/generate');
+    expect(request.body.chat_completion_source).toBe('claude');
+    expect(request.body.stop).toEqual(['STOP']);
     expect(request.body.top_k).toBe(20);
-    expect(request.body.system).toEqual([{ type: 'text', text: 'System' }]);
+    expect(request.body.use_sysprompt).toBe(true);
+    expect(request.body.assistant_prefill).toBe('Prefill');
+    expect(request.body.proxy_password).toBe('secret');
+    expect(request.body.messages).toEqual([{ role: 'user', content: 'Hello' }]);
     expect(request.body).not.toHaveProperty('metadata');
-    expect(request.body).not.toHaveProperty('reasoning_effort');
-    expect(request.body).not.toHaveProperty('verbosity');
   });
 });

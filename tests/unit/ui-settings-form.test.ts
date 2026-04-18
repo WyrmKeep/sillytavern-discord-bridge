@@ -23,6 +23,10 @@ const config: BridgeConfig = {
     adminUserIds: ['666'],
   },
   profiles: {},
+  generation: {
+    promptMode: 'headless-st-preset',
+    sillyTavernPresetName: 'Roleplay',
+  },
   defaults: {
     defaultCharacterAvatarFile: '',
     maxHistoryMessages: 80,
@@ -59,6 +63,7 @@ describe('UI settings form mapping', () => {
       defaultForumTagIds: '444',
       allowlistedUserIds: '555',
       adminUserIds: '666',
+      sillyTavernPresetName: 'Roleplay',
       maxHistoryMessages: '80',
       maxReplyCharacters: '1800',
       includeCreatorNotes: false,
@@ -81,6 +86,7 @@ describe('UI settings form mapping', () => {
       defaultForumTagIds: 'tag-a tag-b',
       allowlistedUserIds: 'user-a,user-b',
       adminUserIds: 'admin-a',
+      sillyTavernPresetName: 'Pinned Preset',
       defaultCharacterAvatarFile: 'Alice.png',
       maxHistoryMessages: '24',
       maxReplyCharacters: '1200',
@@ -103,6 +109,10 @@ describe('UI settings form mapping', () => {
     expect(updated.discord.defaultForumTagIds).toEqual(['tag-a', 'tag-b']);
     expect(updated.access.allowlistedUserIds).toEqual(['user-a', 'user-b']);
     expect(updated.access.adminUserIds).toEqual(['admin-a']);
+    expect(updated.generation).toEqual({
+      promptMode: 'headless-st-preset',
+      sillyTavernPresetName: 'Pinned Preset',
+    });
     expect(updated.defaults.maxHistoryMessages).toBe(24);
     expect(updated.defaults.maxReplyCharacters).toBe(1200);
     expect(updated.defaults.includeCreatorNotes).toBe(true);

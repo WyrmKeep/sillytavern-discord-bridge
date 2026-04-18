@@ -9,6 +9,7 @@ export type SettingsFormValues = {
   defaultForumTagIds: string;
   allowlistedUserIds: string;
   adminUserIds: string;
+  sillyTavernPresetName: string;
   defaultCharacterAvatarFile: string;
   maxHistoryMessages: string;
   maxReplyCharacters: string;
@@ -28,6 +29,7 @@ export function configToFormValues(config: BridgeConfig): SettingsFormValues {
     defaultForumTagIds: config.discord.defaultForumTagIds.join(', '),
     allowlistedUserIds: config.access.allowlistedUserIds.join(', '),
     adminUserIds: config.access.adminUserIds.join(', '),
+    sillyTavernPresetName: config.generation.sillyTavernPresetName,
     defaultCharacterAvatarFile: config.defaults.defaultCharacterAvatarFile,
     maxHistoryMessages: String(config.defaults.maxHistoryMessages),
     maxReplyCharacters: String(config.defaults.maxReplyCharacters),
@@ -59,6 +61,11 @@ export function formValuesToConfig(
       adminUserIds: parseCommaSeparatedIds(values.adminUserIds),
     },
     profiles: parseProfilesJson(values.profilesJson),
+    generation: {
+      ...current.generation,
+      promptMode: 'headless-st-preset',
+      sillyTavernPresetName: values.sillyTavernPresetName.trim(),
+    },
     defaults: {
       ...current.defaults,
       defaultCharacterAvatarFile: values.defaultCharacterAvatarFile.trim(),

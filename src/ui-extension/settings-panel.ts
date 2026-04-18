@@ -118,7 +118,7 @@ function fallbackSettingsTemplate(): string {
             <span data-discord-status>Checking status...</span>
           </div>
           <div class="discord-bridge-row">
-            <span>Claude endpoint</span>
+            <span>ST generation</span>
             <span data-st-settings-status>Checking ST settings...</span>
           </div>
           <form class="discord-bridge-form" data-config-form onsubmit="return false">
@@ -129,6 +129,10 @@ function fallbackSettingsTemplate(): string {
             <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">SillyTavern user handle</label>
               <input type="text" data-field="sillyTavernUserHandle" autocomplete="off" />
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">ST Chat Completion preset</label>
+              <input type="text" data-field="sillyTavernPresetName" autocomplete="off" placeholder="Preset filename without .json" />
             </div>
             <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">Discord client ID</label>
@@ -262,6 +266,7 @@ function bindSettingsForm(
 function populateForm(form: HTMLFormElement, values: SettingsFormValues): void {
   setCheckedValue(form, 'enabled', values.enabled);
   setInputValue(form, 'sillyTavernUserHandle', values.sillyTavernUserHandle);
+  setInputValue(form, 'sillyTavernPresetName', values.sillyTavernPresetName);
   setInputValue(form, 'clientId', values.clientId);
   setInputValue(form, 'guildId', values.guildId);
   setInputValue(form, 'forumChannelId', values.forumChannelId);
@@ -281,6 +286,7 @@ function readFormValues(form: HTMLFormElement): SettingsFormValues {
   return {
     enabled: getCheckedValue(form, 'enabled'),
     sillyTavernUserHandle: getInputValue(form, 'sillyTavernUserHandle'),
+    sillyTavernPresetName: getInputValue(form, 'sillyTavernPresetName'),
     clientId: getInputValue(form, 'clientId'),
     guildId: getInputValue(form, 'guildId'),
     forumChannelId: getInputValue(form, 'forumChannelId'),

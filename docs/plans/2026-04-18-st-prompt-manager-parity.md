@@ -2,9 +2,9 @@
 
 ## Status
 
-Planned. Not implemented in the current bridge runtime.
+Implemented as headless core Prompt Manager preset support.
 
-The bridge now fixes unsafe Claude request fields and supports Discord persona / `{{user}}` macro handling in its bridge-owned prompt builder. It still does not claim full SillyTavern Prompt Manager parity.
+The bridge loads a pinned saved Chat Completion preset from disk, assembles the core prompt chain headlessly, and delegates provider request shaping to SillyTavern's backend Chat Completion route. It still does not claim live browser-only extension prompt state or exact frontend token-budget parity.
 
 ## Problem
 

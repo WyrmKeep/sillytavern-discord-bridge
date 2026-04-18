@@ -110,7 +110,7 @@ export function appendAssistantMessage(
   const swipeInfo: SwipeInfo = {
     send_date: input.sendDate,
     extra: {
-      api: 'claude-reverse-proxy',
+      api: 'sillytavern-chat-completions',
       model: input.model,
       discord_bridge: {
         bridge_message_id: input.bridgeMessageId,
@@ -127,7 +127,7 @@ export function appendAssistantMessage(
     swipe_id: 0,
     swipe_info: [swipeInfo],
     extra: {
-      api: 'claude-reverse-proxy',
+      api: 'sillytavern-chat-completions',
       model: input.model,
       discord_bridge: {
         bridge_message_id: input.bridgeMessageId,
