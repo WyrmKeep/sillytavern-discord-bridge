@@ -28,6 +28,7 @@ describe('bridge config schema', () => {
     expect(config.access.allowlistedUserIds).toEqual(['111', '222']);
     expect(config.access.adminUserIds).toEqual(['222']);
     expect(config.discord.defaultForumTagIds).toEqual([]);
+    expect(config.discord.exposedCharacterTags).toEqual([]);
   });
 
   test('missing Discord guild fails', () => {
@@ -87,5 +88,17 @@ describe('bridge config schema', () => {
         },
       }),
     ).toThrow(/contextBudgetTokens/i);
+  });
+
+  test('normalizes exposed character tags in Discord config', () => {
+    const config = parseBridgeConfig({
+      ...DEFAULT_CONFIG,
+      discord: {
+        ...DEFAULT_CONFIG.discord,
+        exposedCharacterTags: [' Discord ', 'discord', 'Bridge'],
+      },
+    });
+
+    expect(config.discord.exposedCharacterTags).toEqual(['Discord', 'Bridge']);
   });
 });

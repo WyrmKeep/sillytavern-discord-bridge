@@ -7,6 +7,7 @@ export type SettingsFormValues = {
   guildId: string;
   forumChannelId: string;
   defaultForumTagIds: string;
+  exposedCharacterTags: string;
   allowlistedUserIds: string;
   adminUserIds: string;
   sillyTavernPresetName: string;
@@ -28,6 +29,7 @@ export function configToFormValues(config: BridgeConfig): SettingsFormValues {
     guildId: config.discord.guildId,
     forumChannelId: config.discord.forumChannelId,
     defaultForumTagIds: config.discord.defaultForumTagIds.join(', '),
+    exposedCharacterTags: config.discord.exposedCharacterTags.join(', '),
     allowlistedUserIds: config.access.allowlistedUserIds.join(', '),
     adminUserIds: config.access.adminUserIds.join(', '),
     sillyTavernPresetName: config.generation.sillyTavernPresetName,
@@ -56,6 +58,7 @@ export function formValuesToConfig(
       guildId: values.guildId.trim(),
       forumChannelId: values.forumChannelId.trim(),
       defaultForumTagIds: parseCommaSeparatedIds(values.defaultForumTagIds),
+      exposedCharacterTags: parseCommaSeparatedIds(values.exposedCharacterTags),
     },
     access: {
       ...current.access,

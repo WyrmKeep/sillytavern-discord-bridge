@@ -40,6 +40,7 @@ export type BridgeConfig = {
     createForumIfMissing: boolean;
     forumName: string;
     defaultForumTagIds: string[];
+    exposedCharacterTags: string[];
   };
   access: {
     allowlistedUserIds: string[];

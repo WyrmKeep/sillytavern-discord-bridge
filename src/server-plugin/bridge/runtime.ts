@@ -41,7 +41,9 @@ import {
   readSillyTavernSettingsFile,
 } from '../sillytavern/settings.js';
 import {
+  filterCharactersByTags,
   listCharacterCards,
+  loadSillyTavernTags,
   type BridgeCharacter,
 } from '../sillytavern/characters.js';
 import {
@@ -149,7 +151,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
   return {
     listCharacters: async () => {
       const config = await readBridgeConfig(paths);
-      return listCharacterCards(userDirectories(paths, config).characters);
+      return listExposedCharacterCards(paths, config);
     },
     getConversation: async (threadId) => {
       const state = await readState(paths.stateFile).catch(() => emptyState());
@@ -165,6 +167,7 @@ export function createBridgeRuntime(dependencies: BridgeRuntimeDependencies = {}
         paths,
         config,
         input.characterAvatarFile || config.defaults.defaultCharacterAvatarFile,
+        { enforceExposure: true },
       );
       const userName = profileDisplayName(config, input.discordUserId, input.discordDisplayName);
       const createdAt = now().toISOString();
@@ -444,17 +447,48 @@ async function resolveCharacter(
   paths: BridgePaths,
   config: DiscordBridgeConfig,
   characterAvatarFile: string,
+  options: { enforceExposure?: boolean } = {},
 ): Promise<BridgeCharacter> {
-  const characters = await listCharacterCards(userDirectories(paths, config).characters);
+  const directories = userDirectories(paths, config);
+  const characters = options.enforceExposure
+    ? await listExposedCharacterCards(paths, config)
+    : await listCharacterCards(directories.characters);
   const character = characters.find(
     (candidate) =>
       candidate.characterAvatarFile === characterAvatarFile ||
       candidate.name.toLowerCase() === characterAvatarFile.toLowerCase(),
   );
-  if (!character) {
-    throw new Error(`Character not found: ${characterAvatarFile}`);
+  if (character) {
+    return character;
   }
-  return character;
+
+  if (options.enforceExposure && config.discord.exposedCharacterTags.length > 0) {
+    const allCharacters = await listCharacterCards(directories.characters);
+    const hiddenCharacter = allCharacters.find(
+      (candidate) =>
+        candidate.characterAvatarFile === characterAvatarFile ||
+        candidate.name.toLowerCase() === characterAvatarFile.toLowerCase(),
+    );
+    if (hiddenCharacter) {
+      throw new Error(`Character is not exposed to Discord: ${characterAvatarFile}`);
+    }
+  }
+
+  throw new Error(`Character not found: ${characterAvatarFile}`);
+}
+
+async function listExposedCharacterCards(
+  paths: BridgePaths,
+  config: DiscordBridgeConfig,
+): Promise<BridgeCharacter[]> {
+  const directories = userDirectories(paths, config);
+  const characters = await listCharacterCards(directories.characters);
+  if (config.discord.exposedCharacterTags.length === 0) {
+    return characters;
+  }
+
+  const tagIndex = await loadSillyTavernTags(directories.root);
+  return filterCharactersByTags(characters, tagIndex, config.discord.exposedCharacterTags);
 }
 
 function chatFilePath(

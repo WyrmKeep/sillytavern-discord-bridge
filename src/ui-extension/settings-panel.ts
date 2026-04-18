@@ -151,6 +151,10 @@ function fallbackSettingsTemplate(): string {
               <textarea data-field="defaultForumTagIds" rows="2"></textarea>
             </div>
             <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Exposed character tags</label>
+              <textarea data-field="exposedCharacterTags" rows="2"></textarea>
+            </div>
+            <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">Allowed Discord user IDs</label>
               <textarea data-field="allowlistedUserIds" rows="2"></textarea>
             </div>
@@ -275,6 +279,7 @@ function populateForm(form: HTMLFormElement, values: SettingsFormValues): void {
   setInputValue(form, 'guildId', values.guildId);
   setInputValue(form, 'forumChannelId', values.forumChannelId);
   setInputValue(form, 'defaultForumTagIds', values.defaultForumTagIds);
+  setInputValue(form, 'exposedCharacterTags', values.exposedCharacterTags);
   setInputValue(form, 'allowlistedUserIds', values.allowlistedUserIds);
   setInputValue(form, 'adminUserIds', values.adminUserIds);
   setInputValue(form, 'defaultCharacterAvatarFile', values.defaultCharacterAvatarFile);
@@ -296,6 +301,7 @@ function readFormValues(form: HTMLFormElement): SettingsFormValues {
     guildId: getInputValue(form, 'guildId'),
     forumChannelId: getInputValue(form, 'forumChannelId'),
     defaultForumTagIds: getInputValue(form, 'defaultForumTagIds'),
+    exposedCharacterTags: getInputValue(form, 'exposedCharacterTags'),
     allowlistedUserIds: getInputValue(form, 'allowlistedUserIds'),
     adminUserIds: getInputValue(form, 'adminUserIds'),
     defaultCharacterAvatarFile: getInputValue(form, 'defaultCharacterAvatarFile'),

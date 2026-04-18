@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG = {
     createForumIfMissing: false,
     forumName: 'SillyTavern',
     defaultForumTagIds: [],
+    exposedCharacterTags: [],
   },
   access: {
     allowlistedUserIds: [],
@@ -59,6 +60,7 @@ export const bridgeConfigSchema = z
       createForumIfMissing: z.boolean().default(false),
       forumName: nonEmptyString.default(DEFAULT_CONFIG.discord.forumName),
       defaultForumTagIds: stringArray,
+      exposedCharacterTags: stringArray,
     }),
     access: z.object({
       allowlistedUserIds: stringArray,
@@ -95,6 +97,7 @@ export const bridgeConfigSchema = z
     discord: {
       ...config.discord,
       defaultForumTagIds: dedupe(config.discord.defaultForumTagIds),
+      exposedCharacterTags: dedupeCaseInsensitive(config.discord.exposedCharacterTags),
     },
   }));
 
@@ -125,4 +128,18 @@ export function redactConfig(config: DiscordBridgeConfig): DiscordBridgeConfig {
 
 function dedupe(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+function dedupeCaseInsensitive(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const key = value.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
 }

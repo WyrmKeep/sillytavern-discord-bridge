@@ -17,6 +17,10 @@ export type BridgeCharacter = {
   tags: string[];
 };
 
+export type SillyTavernTagIndex = {
+  tagNamesByAvatar: Map<string, string[]>;
+};
+
 export function deriveChatFolderName(characterAvatarFile: string): string {
   return path.parse(characterAvatarFile.replace(/\\/g, '/')).name;
 }
@@ -66,6 +70,138 @@ export async function listCharacterCards(charactersDir: string): Promise<BridgeC
   return cards.sort((left, right) =>
     left.characterAvatarFile.localeCompare(right.characterAvatarFile),
   );
+}
+
+export async function loadSillyTavernTags(userRoot: string): Promise<SillyTavernTagIndex> {
+  const tagsJson = await readJsonFile(path.join(userRoot, 'tags.json'));
+  if (tagsJson.found) {
+    return parseSillyTavernTags(tagsJson.value);
+  }
+
+  const settingsJson = await readJsonFile(path.join(userRoot, 'settings.json'));
+  if (settingsJson.found) {
+    return parseSillyTavernTags(settingsJson.value);
+  }
+
+  return emptyTagIndex();
+}
+
+export function filterCharactersByTags(
+  characters: BridgeCharacter[],
+  tagIndex: SillyTavernTagIndex,
+  exposedCharacterTags: string[],
+): BridgeCharacter[] {
+  const exposed = normalizeTagNames(exposedCharacterTags);
+  if (exposed.size === 0) {
+    return characters;
+  }
+
+  return characters.filter((character) => {
+    const tags = tagIndex.tagNamesByAvatar.get(character.characterAvatarFile) ?? [];
+    return tags.some((tag) => exposed.has(normalizeTagName(tag)));
+  });
+}
+
+function parseSillyTavernTags(raw: unknown): SillyTavernTagIndex {
+  const tagNamesByAvatar = new Map<string, string[]>();
+
+  if (Array.isArray(raw)) {
+    addTagObjectsToIndex(raw, tagNamesByAvatar);
+    return { tagNamesByAvatar };
+  }
+
+  const root = asOptionalRecord(raw);
+  if (!root) {
+    return emptyTagIndex();
+  }
+
+  addTagObjectsToIndex(Array.isArray(root.tags) ? root.tags : [], tagNamesByAvatar);
+
+  const tagNameById = new Map<string, string>();
+  for (const tag of Array.isArray(root.tags) ? root.tags : []) {
+    const tagRecord = asOptionalRecord(tag);
+    if (!tagRecord || typeof tagRecord.id !== 'string' || typeof tagRecord.name !== 'string') {
+      continue;
+    }
+    tagNameById.set(tagRecord.id, tagRecord.name);
+  }
+
+  const tagMap = asOptionalRecord(root.tag_map);
+  if (!tagMap) {
+    return { tagNamesByAvatar };
+  }
+
+  for (const [avatarFile, tagIds] of Object.entries(tagMap)) {
+    if (!Array.isArray(tagIds)) {
+      continue;
+    }
+    for (const tagId of tagIds) {
+      if (typeof tagId !== 'string') {
+        continue;
+      }
+      const tagName = tagNameById.get(tagId);
+      if (tagName) {
+        addAvatarTag(tagNamesByAvatar, avatarFile, tagName);
+      }
+    }
+  }
+
+  return { tagNamesByAvatar };
+}
+
+function addTagObjectsToIndex(rawTags: unknown[], tagNamesByAvatar: Map<string, string[]>): void {
+  for (const rawTag of rawTags) {
+    const tag = asOptionalRecord(rawTag);
+    if (!tag || typeof tag.name !== 'string') {
+      continue;
+    }
+    for (const avatarFile of tagAvatarFiles(tag)) {
+      addAvatarTag(tagNamesByAvatar, avatarFile, tag.name);
+    }
+  }
+}
+
+function tagAvatarFiles(tag: Record<string, unknown>): string[] {
+  return ['characters', 'characterAvatarFiles', 'avatars', 'entities']
+    .flatMap((key) => stringArrayField(tag[key]));
+}
+
+function addAvatarTag(
+  tagNamesByAvatar: Map<string, string[]>,
+  avatarFile: string,
+  tagName: string,
+): void {
+  const tags = tagNamesByAvatar.get(avatarFile) ?? [];
+  if (!tags.some((existing) => normalizeTagName(existing) === normalizeTagName(tagName))) {
+    tags.push(tagName);
+  }
+  tagNamesByAvatar.set(avatarFile, tags);
+}
+
+async function readJsonFile(filePath: string): Promise<{ found: true; value: unknown } | { found: false }> {
+  try {
+    return {
+      found: true,
+      value: JSON.parse(await readFile(filePath, 'utf8')) as unknown,
+    };
+  } catch (error) {
+    if (isNotFound(error)) {
+      return { found: false };
+    }
+    return { found: true, value: undefined };
+  }
+}
+
+function normalizeTagNames(values: string[]): Set<string> {
+  return new Set(values.map(normalizeTagName).filter(Boolean));
+}
+
+function normalizeTagName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function emptyTagIndex(): SillyTavernTagIndex {
+  return { tagNamesByAvatar: new Map() };
 }
 
 async function readCharacterCardFile(filePath: string): Promise<unknown> {
