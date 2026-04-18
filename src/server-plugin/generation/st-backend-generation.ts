@@ -123,10 +123,14 @@ export async function sendSillyTavernBackendRequest(
       JSON.stringify(redactError(json)).slice(0, 300),
     );
   }
+  const generatedText = parseGenerationResponse(json);
+  if (generatedText) {
+    return generatedText;
+  }
   if (typeof json === 'string') {
     return json;
   }
-  if (typeof text === 'string' && text.length > 0) {
+  if (json === undefined && text.length > 0) {
     return text;
   }
 
@@ -172,6 +176,51 @@ function tryParseJson(value: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+function parseGenerationResponse(value: unknown): string | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const anthropicText = parseAnthropicContentBlocks(value.content);
+  if (anthropicText) {
+    return anthropicText;
+  }
+
+  const firstChoice = Array.isArray(value.choices) ? value.choices[0] : undefined;
+  if (!isRecord(firstChoice)) {
+    return undefined;
+  }
+
+  const message = firstChoice.message;
+  if (isRecord(message)) {
+    const content = message.content;
+    if (typeof content === 'string' && content.length > 0) {
+      return content;
+    }
+
+    const nestedContent = parseAnthropicContentBlocks(content);
+    if (nestedContent) {
+      return nestedContent;
+    }
+  }
+
+  return typeof firstChoice.text === 'string' && firstChoice.text.length > 0 ? firstChoice.text : undefined;
+}
+
+function parseAnthropicContentBlocks(value: unknown): string | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const text = value
+    .filter((block): block is Record<string, unknown> => isRecord(block) && block.type === 'text')
+    .map((block) => block.text)
+    .filter((blockText): blockText is string => typeof blockText === 'string' && blockText.length > 0)
+    .join('');
+
+  return text.length > 0 ? text : undefined;
 }
 
 function redactError(value: Record<string, unknown>): Record<string, unknown> {
