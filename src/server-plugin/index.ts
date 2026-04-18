@@ -1,10 +1,14 @@
 import type { Router } from 'express';
-import type { Client } from 'discord.js';
-import { destroyDiscordClient } from './discord/client.js';
+import {
+  discordBotRuntime,
+  type DiscordBotRuntime,
+} from './discord/lifecycle.js';
 import { registerRoutes } from './routes/index.js';
-import { logInfo } from './logging.js';
+import { logError, logInfo } from './logging.js';
 
-let discordClient: Client | undefined;
+export type DiscordBridgePluginOptions = {
+  discordBotRuntime?: DiscordBotRuntime;
+};
 
 export const info = {
   id: 'discord-bridge',
@@ -12,13 +16,17 @@ export const info = {
   description: 'Private Discord bridge for SillyTavern character chats.',
 };
 
-export function init(router: Router): void {
-  registerRoutes(router);
+export function init(router: Router, options: DiscordBridgePluginOptions = {}): void {
+  const runtime = options.discordBotRuntime ?? discordBotRuntime;
+  registerRoutes(router, { discordBotRuntime: runtime });
+  void runtime.reconcile().catch((error: unknown) => {
+    logError('discord bot startup failed', error);
+  });
   logInfo('server plugin initialized');
 }
 
-export async function exit(): Promise<void> {
-  await destroyDiscordClient(discordClient);
-  discordClient = undefined;
+export async function exit(options: DiscordBridgePluginOptions = {}): Promise<void> {
+  const runtime = options.discordBotRuntime ?? discordBotRuntime;
+  await runtime.stop();
   logInfo('server plugin stopped');
 }
