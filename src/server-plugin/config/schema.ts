@@ -59,7 +59,7 @@ export const bridgeConfigSchema = z
       allowlistedUserIds: stringArray,
       adminUserIds: stringArray,
     }),
-    profiles: z.record(profileSchema).default({}),
+    profiles: z.record(z.string(), profileSchema).default({}),
     defaults: z.object({
       defaultCharacterAvatarFile: z.string().default(''),
       maxHistoryMessages: z.number().int().min(1).max(500).default(80),
