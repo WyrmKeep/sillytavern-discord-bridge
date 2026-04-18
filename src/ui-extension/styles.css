@@ -23,15 +23,48 @@
 }
 
 .discord-bridge-form label {
+  color: var(--SmartThemeBodyColor);
   display: grid;
   gap: 0.25rem;
+  line-height: 1.35;
+}
+
+.discord-bridge-form label:has(input[type='checkbox']) {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .discord-bridge-form input[type='text'],
 .discord-bridge-form input[type='password'],
 .discord-bridge-form textarea {
+  background: var(--SmartThemeBlurTintColor);
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 5px;
   box-sizing: border-box;
+  color: var(--SmartThemeBodyColor);
+  font: inherit;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.55rem;
   width: 100%;
+}
+
+.discord-bridge-form textarea {
+  min-height: 4rem;
+  resize: vertical;
+}
+
+.discord-bridge-form input[type='text']:focus,
+.discord-bridge-form input[type='password']:focus,
+.discord-bridge-form textarea:focus {
+  border-color: var(--SmartThemeQuoteColor);
+  box-shadow: 0 0 0 1px var(--SmartThemeQuoteColor);
+  outline: none;
+}
+
+.discord-bridge-form input::placeholder {
+  color: var(--SmartThemeEmColor);
+  opacity: 0.8;
 }
 
 .discord-bridge-actions {
