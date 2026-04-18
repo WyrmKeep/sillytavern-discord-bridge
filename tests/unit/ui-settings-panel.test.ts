@@ -92,4 +92,18 @@ describe('UI settings panel', () => {
     expect(settingsRoot.html).toContain('discord-bridge-settings');
   });
 
+  test('renders non-submitting settings form markup', async () => {
+    const settingsRoot = new FakeElement();
+
+    await mountSettingsPanelInExtensionsMenu({
+      documentRef: new FakeDocument(settingsRoot),
+      fetchStatus: async () => ({ ok: false }),
+    });
+
+    expect(settingsRoot.html).toContain('onsubmit="return false"');
+    expect(settingsRoot.html).toContain('data-save-config');
+    expect(settingsRoot.html).toContain('type="button"');
+    expect(settingsRoot.html).not.toContain('type="submit"');
+    expect(settingsRoot.html).toContain('discord-bridge-field');
+  });
 });

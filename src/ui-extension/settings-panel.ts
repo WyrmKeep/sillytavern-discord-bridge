@@ -95,53 +95,53 @@ function fallbackSettingsTemplate(): string {
             <span>Server plugin</span>
             <span data-status>Checking status...</span>
           </div>
-          <form class="discord-bridge-form" data-config-form>
-            <label>
+          <form class="discord-bridge-form" data-config-form onsubmit="return false">
+            <div class="discord-bridge-checkbox">
               <input type="checkbox" data-field="enabled" />
-              Enable Discord bridge
-            </label>
-            <label>
-              SillyTavern user handle
+              <label>Enable Discord bridge</label>
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">SillyTavern user handle</label>
               <input type="text" data-field="sillyTavernUserHandle" autocomplete="off" />
-            </label>
-            <label>
-              Discord client ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord client ID</label>
               <input type="text" data-field="clientId" autocomplete="off" />
-            </label>
-            <label>
-              Discord guild ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord guild ID</label>
               <input type="text" data-field="guildId" autocomplete="off" />
-            </label>
-            <label>
-              Discord forum channel ID
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord forum channel ID</label>
               <input type="text" data-field="forumChannelId" autocomplete="off" />
-            </label>
-            <label>
-              Required/default forum tag IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Required/default forum tag IDs</label>
               <textarea data-field="defaultForumTagIds" rows="2"></textarea>
-            </label>
-            <label>
-              Allowed Discord user IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Allowed Discord user IDs</label>
               <textarea data-field="allowlistedUserIds" rows="2"></textarea>
-            </label>
-            <label>
-              Admin Discord user IDs
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Admin Discord user IDs</label>
               <textarea data-field="adminUserIds" rows="2"></textarea>
-            </label>
-            <label>
-              Default character avatar file
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Default character avatar file</label>
               <input type="text" data-field="defaultCharacterAvatarFile" autocomplete="off" />
-            </label>
-            <label>
-              Conversation title format
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Conversation title format</label>
               <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
-            </label>
-            <label>
-              Discord bot token
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord bot token</label>
               <input type="password" data-field="discordBotToken" autocomplete="new-password" placeholder="Leave blank to keep existing token" />
-            </label>
+            </div>
             <div class="discord-bridge-actions">
-              <button type="submit" class="menu_button">Save</button>
+              <button type="button" class="menu_button" data-save-config>Save</button>
               <span data-config-status>Loading config...</span>
             </div>
           </form>
@@ -160,6 +160,7 @@ function bindSettingsForm(
   if (!form) {
     return;
   }
+  const saveButton = form.querySelector('[data-save-config]') as HTMLButtonElement | null;
 
   let currentConfig: BridgeConfig | undefined;
   const fetchConfig = options.fetchConfig ?? fetchBridgeConfig;
@@ -177,8 +178,7 @@ function bindSettingsForm(
       setStatus(status, errorMessage(error));
     });
 
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
+  const saveCurrentConfig = (): void => {
     if (!currentConfig) {
       setStatus(status, 'Config not loaded');
       return;
@@ -199,6 +199,15 @@ function bindSettingsForm(
         setStatus(status, errorMessage(error));
       }
     })();
+  };
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    saveCurrentConfig();
+  });
+
+  saveButton?.addEventListener('click', () => {
+    saveCurrentConfig();
   });
 }
 
