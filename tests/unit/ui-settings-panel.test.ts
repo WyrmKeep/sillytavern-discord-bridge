@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { mountSettingsPanelInExtensionsMenu } from '../../src/ui-extension/settings-panel.js';
 
 class FakeStatusNode {
@@ -27,6 +27,10 @@ class FakeDocument {
 }
 
 describe('UI settings panel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   test('mounts into SillyTavern extension settings container', async () => {
     const settingsRoot = new FakeElement();
 
@@ -49,5 +53,42 @@ describe('UI settings panel', () => {
     });
 
     expect(result).toBe('missing-container');
+  });
+
+  test('falls back to built-in template when SillyTavern template loading fails', async () => {
+    const settingsRoot = new FakeElement();
+
+    await mountSettingsPanelInExtensionsMenu({
+      documentRef: new FakeDocument(settingsRoot),
+      renderTemplate: async () => {
+        throw new Error('404 Not Found');
+      },
+      fetchStatus: async () => ({ ok: false }),
+    });
+
+    expect(settingsRoot.html).toContain('discord-bridge-settings');
+    expect(settingsRoot.html).toContain('inline-drawer');
+    expect(settingsRoot.statusNode.textContent).toBe('Plugin unavailable');
+  });
+
+  test('uses built-in template by default without requesting a SillyTavern template file', async () => {
+    const settingsRoot = new FakeElement();
+    const renderExtensionTemplateAsync = vi.fn(async () => {
+      throw new Error('should not be called');
+    });
+
+    vi.stubGlobal('window', {
+      SillyTavern: {
+        getContext: () => ({ renderExtensionTemplateAsync }),
+      },
+    });
+
+    await mountSettingsPanelInExtensionsMenu({
+      documentRef: new FakeDocument(settingsRoot),
+      fetchStatus: async () => ({ ok: false }),
+    });
+
+    expect(renderExtensionTemplateAsync).not.toHaveBeenCalled();
+    expect(settingsRoot.html).toContain('discord-bridge-settings');
   });
 });

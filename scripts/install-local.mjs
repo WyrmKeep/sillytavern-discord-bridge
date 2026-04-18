@@ -23,6 +23,7 @@ await mkdir(uiExtensionDir, { recursive: true });
 await cp('dist/server-plugin', serverPluginDir, { recursive: true });
 await cp('dist/ui-extension', uiExtensionDir, { recursive: true });
 await cp('src/ui-extension/manifest.json', path.join(uiExtensionDir, 'manifest.json'));
+await cp('src/ui-extension/templates/settings.html', path.join(uiExtensionDir, 'settings.html'));
 await cp('src/ui-extension/templates', path.join(uiExtensionDir, 'templates'), { recursive: true });
 
 console.log(`Installed server plugin to ${serverPluginDir}`);
