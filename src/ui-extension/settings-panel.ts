@@ -1,6 +1,7 @@
 import {
   fetchBridgeConfig,
   fetchBridgeStatus,
+  fetchStSettingsStatus,
   saveBridgeConfig,
   saveBridgeSecrets,
   type BridgeConfig,
@@ -26,9 +27,11 @@ type SettingsDocument = {
 };
 
 type BridgeStatus = Awaited<ReturnType<typeof fetchBridgeStatus>>;
+type StSettingsStatus = Awaited<ReturnType<typeof fetchStSettingsStatus>>;
 
 type SettingsPanelOptions = {
   fetchStatus?: () => Promise<BridgeStatus>;
+  fetchStSettingsStatus?: () => Promise<StSettingsStatus>;
   fetchConfig?: () => Promise<BridgeConfigPayload>;
   saveConfig?: (config: BridgeConfig) => Promise<BridgeConfigPayload>;
   saveSecrets?: (input: { discordBotToken?: string }) => Promise<BridgeConfigPayload>;
@@ -63,10 +66,25 @@ export async function mountSettingsPanel(
   const template = await renderSettingsTemplate(options.renderTemplate).catch(() => undefined);
 
   container.insertAdjacentHTML('beforeend', template ?? fallbackSettingsTemplate());
-  const status = await (options.fetchStatus ?? fetchBridgeStatus)().catch(() => ({ ok: false }));
+  const status: BridgeStatus = await (options.fetchStatus ?? fetchBridgeStatus)()
+    .catch(() => ({ ok: false }));
   const statusNode = container.querySelector('[data-status]');
   if (statusNode) {
     statusNode.textContent = status.ok ? 'Plugin reachable' : 'Plugin unavailable';
+  }
+  const discordStatusNode = container.querySelector('[data-discord-status]');
+  if (discordStatusNode) {
+    discordStatusNode.textContent = status.discord
+      ? `${status.discord.state}${status.discord.userTag ? ` (${status.discord.userTag})` : ''}`
+      : 'Status unavailable';
+  }
+  const stSettingsStatus = await (options.fetchStSettingsStatus ?? fetchStSettingsStatus)()
+    .catch((error: unknown) => ({ ok: false as const, reason: errorMessage(error) }));
+  const stSettingsStatusNode = container.querySelector('[data-st-settings-status]');
+  if (stSettingsStatusNode) {
+    stSettingsStatusNode.textContent = stSettingsStatus.ok
+      ? `${stSettingsStatus.model}, ${stSettingsStatus.reverseProxy}`
+      : stSettingsStatus.reason ?? 'ST settings unavailable';
   }
 
   bindSettingsForm(container, options);
@@ -94,6 +112,14 @@ function fallbackSettingsTemplate(): string {
           <div class="discord-bridge-row">
             <span>Server plugin</span>
             <span data-status>Checking status...</span>
+          </div>
+          <div class="discord-bridge-row">
+            <span>Discord bot</span>
+            <span data-discord-status>Checking status...</span>
+          </div>
+          <div class="discord-bridge-row">
+            <span>Claude endpoint</span>
+            <span data-st-settings-status>Checking ST settings...</span>
           </div>
           <form class="discord-bridge-form" data-config-form onsubmit="return false">
             <div class="discord-bridge-checkbox">
@@ -132,9 +158,31 @@ function fallbackSettingsTemplate(): string {
               <label class="discord-bridge-field-label">Default character avatar file</label>
               <input type="text" data-field="defaultCharacterAvatarFile" autocomplete="off" />
             </div>
+            <div class="discord-bridge-field-grid">
+              <div class="discord-bridge-field">
+                <label class="discord-bridge-field-label">Max history messages</label>
+                <input type="number" data-field="maxHistoryMessages" min="1" max="500" autocomplete="off" />
+              </div>
+              <div class="discord-bridge-field">
+                <label class="discord-bridge-field-label">Max reply characters</label>
+                <input type="number" data-field="maxReplyCharacters" min="200" max="2000" autocomplete="off" />
+              </div>
+            </div>
+            <div class="discord-bridge-checkbox">
+              <input type="checkbox" data-field="includeCreatorNotes" />
+              <label>Include creator notes</label>
+            </div>
+            <div class="discord-bridge-checkbox">
+              <input type="checkbox" data-field="includePostHistoryInstructions" />
+              <label>Include post-history instructions</label>
+            </div>
             <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">Conversation title format</label>
               <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
+            </div>
+            <div class="discord-bridge-field">
+              <label class="discord-bridge-field-label">Discord user profiles JSON</label>
+              <textarea data-field="profilesJson" rows="5"></textarea>
             </div>
             <div class="discord-bridge-field">
               <label class="discord-bridge-field-label">Discord bot token</label>
@@ -221,7 +269,12 @@ function populateForm(form: HTMLFormElement, values: SettingsFormValues): void {
   setInputValue(form, 'allowlistedUserIds', values.allowlistedUserIds);
   setInputValue(form, 'adminUserIds', values.adminUserIds);
   setInputValue(form, 'defaultCharacterAvatarFile', values.defaultCharacterAvatarFile);
+  setInputValue(form, 'maxHistoryMessages', values.maxHistoryMessages);
+  setInputValue(form, 'maxReplyCharacters', values.maxReplyCharacters);
+  setCheckedValue(form, 'includeCreatorNotes', values.includeCreatorNotes);
+  setCheckedValue(form, 'includePostHistoryInstructions', values.includePostHistoryInstructions);
   setInputValue(form, 'conversationTitleFormat', values.conversationTitleFormat);
+  setInputValue(form, 'profilesJson', values.profilesJson);
 }
 
 function readFormValues(form: HTMLFormElement): SettingsFormValues {
@@ -235,7 +288,12 @@ function readFormValues(form: HTMLFormElement): SettingsFormValues {
     allowlistedUserIds: getInputValue(form, 'allowlistedUserIds'),
     adminUserIds: getInputValue(form, 'adminUserIds'),
     defaultCharacterAvatarFile: getInputValue(form, 'defaultCharacterAvatarFile'),
+    maxHistoryMessages: getInputValue(form, 'maxHistoryMessages'),
+    maxReplyCharacters: getInputValue(form, 'maxReplyCharacters'),
+    includeCreatorNotes: getCheckedValue(form, 'includeCreatorNotes'),
+    includePostHistoryInstructions: getCheckedValue(form, 'includePostHistoryInstructions'),
     conversationTitleFormat: getInputValue(form, 'conversationTitleFormat'),
+    profilesJson: getInputValue(form, 'profilesJson'),
   };
 }
 

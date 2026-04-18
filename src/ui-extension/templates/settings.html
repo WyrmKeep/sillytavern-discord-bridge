@@ -11,11 +11,11 @@
       </div>
       <div class="discord-bridge-row">
         <span>Discord bot</span>
-        <span>Configured in server plugin</span>
+        <span data-discord-status>Checking status...</span>
       </div>
       <div class="discord-bridge-row">
         <span>Claude endpoint</span>
-        <span>Uses SillyTavern Chat Completion settings</span>
+        <span data-st-settings-status>Checking ST settings...</span>
       </div>
       <form class="discord-bridge-form" data-config-form onsubmit="return false">
         <div class="discord-bridge-checkbox">
@@ -54,9 +54,31 @@
           <label class="discord-bridge-field-label">Default character avatar file</label>
           <input type="text" data-field="defaultCharacterAvatarFile" autocomplete="off" />
         </div>
+        <div class="discord-bridge-field-grid">
+          <div class="discord-bridge-field">
+            <label class="discord-bridge-field-label">Max history messages</label>
+            <input type="number" data-field="maxHistoryMessages" min="1" max="500" autocomplete="off" />
+          </div>
+          <div class="discord-bridge-field">
+            <label class="discord-bridge-field-label">Max reply characters</label>
+            <input type="number" data-field="maxReplyCharacters" min="200" max="2000" autocomplete="off" />
+          </div>
+        </div>
+        <div class="discord-bridge-checkbox">
+          <input type="checkbox" data-field="includeCreatorNotes" />
+          <label>Include creator notes</label>
+        </div>
+        <div class="discord-bridge-checkbox">
+          <input type="checkbox" data-field="includePostHistoryInstructions" />
+          <label>Include post-history instructions</label>
+        </div>
         <div class="discord-bridge-field">
           <label class="discord-bridge-field-label">Conversation title format</label>
           <input type="text" data-field="conversationTitleFormat" autocomplete="off" />
+        </div>
+        <div class="discord-bridge-field">
+          <label class="discord-bridge-field-label">Discord user profiles JSON</label>
+          <textarea data-field="profilesJson" rows="5"></textarea>
         </div>
         <div class="discord-bridge-field">
           <label class="discord-bridge-field-label">Discord bot token</label>

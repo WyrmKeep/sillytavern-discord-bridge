@@ -1,7 +1,33 @@
 export type BridgeStatus = {
   ok: boolean;
   plugin?: string;
+  discord?: {
+    enabled: boolean;
+    ready: boolean;
+    state: string;
+    reason?: string;
+    userTag?: string;
+  };
 };
+
+export type StSettingsStatus =
+  | {
+    ok: true;
+    mainApi?: string;
+    chatCompletionSource: 'claude';
+    model: 'claude-sonnet-4-6';
+    reverseProxy: '<configured>';
+    proxyPassword: '<present>' | '<missing>';
+    stream: false;
+    originalStreamOpenAI: boolean;
+    useSystemPrompt: boolean;
+    reasoningEffort: string;
+    verbosity: string;
+  }
+  | {
+    ok: false;
+    reason?: string;
+  };
 
 export type BridgeConfig = {
   version: 1;
@@ -64,6 +90,14 @@ export async function fetchBridgeConfig(): Promise<BridgeConfigPayload> {
     throw new Error(`Bridge config failed: ${response.status}`);
   }
   return parseBridgeConfigPayload(await response.json());
+}
+
+export async function fetchStSettingsStatus(): Promise<StSettingsStatus> {
+  const response = await fetch('/api/plugins/discord-bridge/st-settings/status');
+  if (!response.ok) {
+    throw new Error(`ST settings status failed: ${response.status}`);
+  }
+  return (await response.json()) as StSettingsStatus;
 }
 
 export async function saveBridgeConfig(config: BridgeConfig): Promise<BridgeConfigPayload> {

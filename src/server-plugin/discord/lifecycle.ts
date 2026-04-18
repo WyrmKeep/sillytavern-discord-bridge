@@ -11,6 +11,9 @@ import {
   type RegisterGuildCommandsInput,
 } from './command-registration.js';
 import { createDiscordClient } from './client.js';
+import { createDiscordAdapter } from './adapter.js';
+import { attachDiscordEventHandlers } from './event-handlers.js';
+import { createBridgeRuntime } from '../bridge/runtime.js';
 
 export type DiscordBotClient = {
   destroy(): void;
@@ -213,8 +216,13 @@ export function createDiscordBotRuntime(
 }
 
 export function createDefaultDiscordBotRuntime(): DiscordBotRuntime {
+  const bridgeRuntime = createBridgeRuntime();
   return createDiscordBotRuntime({
-    createClient: createDiscordClient,
+    createClient: () => {
+      const client = createDiscordClient();
+      attachDiscordEventHandlers(client, bridgeRuntime, createDiscordAdapter(client));
+      return client;
+    },
     registerCommands: registerGuildCommands,
     readConfig: async () => {
       const paths = resolveDefaultBridgePaths();

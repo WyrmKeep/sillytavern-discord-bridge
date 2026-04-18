@@ -105,5 +105,9 @@ describe('UI settings panel', () => {
     expect(settingsRoot.html).toContain('type="button"');
     expect(settingsRoot.html).not.toContain('type="submit"');
     expect(settingsRoot.html).toContain('discord-bridge-field');
+    expect(settingsRoot.html).toContain('data-st-settings-status');
+    expect(settingsRoot.html).toContain('data-field="maxHistoryMessages"');
+    expect(settingsRoot.html).toContain('data-field="maxReplyCharacters"');
+    expect(settingsRoot.html).toContain('data-field="profilesJson"');
   });
 });

@@ -127,7 +127,7 @@ Use `.env.example` only as a placeholder reference. Real `.env` files stay local
 
 ## Register Slash Commands
 
-Register commands to the private guild, not globally:
+The server plugin registers commands to the configured private guild when the bot starts or when bridge config/secrets are saved. Use the manual script only after command-shape changes or when debugging registration:
 
 ```powershell
 npm run build
@@ -157,7 +157,7 @@ This smoke check does not prove channel permissions by itself. After the bot is 
 
 1. Start or restart SillyTavern after installing the bridge.
 2. Confirm the bridge status route responds.
-3. Register slash commands.
+3. Confirm `/api/plugins/discord-bridge/status` reports the Discord bot as `ready`.
 4. In the target Discord guild, run:
 
    ```text
@@ -180,6 +180,7 @@ Slash commands do not appear:
 
 - Confirm the bot was invited to the correct guild.
 - Confirm `DISCORD_CLIENT_ID` and `DISCORD_GUILD_ID` are correct.
+- Save bridge config again or restart SillyTavern so the plugin reconciles command registration.
 - Re-run `npm run register:discord`.
 - Confirm the app was installed with `applications.commands`.
 
