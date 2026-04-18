@@ -10,8 +10,9 @@ async function l(e = {}) {
   return t ? (await u(t, e), "mounted") : "missing-container";
 }
 async function u(e, n = {}) {
-  const t = await g(n.renderTemplate) ?? f();
-  e.insertAdjacentHTML("beforeend", t);
+  const t = await g(n.renderTemplate).catch(() => {
+  });
+  e.insertAdjacentHTML("beforeend", t ?? f());
   const i = await (n.fetchStatus ?? r)().catch(() => ({ ok: !1 })), s = e.querySelector("[data-status]");
   s && (s.textContent = i.ok ? "Plugin reachable" : "Plugin unavailable");
 }
