@@ -69,6 +69,27 @@ The script copies:
 
 Restart SillyTavern after installing.
 
+## Optional UI Extension Install From Git
+
+SillyTavern's built-in Git installer installs UI extensions. It does not install the Node.js server plugin that this bridge needs for Discord, file access, and `/api/plugins/discord-bridge/*` routes.
+
+You can use the installer screen for the UI extension only:
+
+```text
+Git URL: https://github.com/WyrmKeep/sillytavern-discord-bridge
+Branch or tag: st-ui-extension
+```
+
+After that, still install the server plugin with:
+
+```powershell
+npm run build
+$env:SILLYTAVERN_ROOT = "C:\Path\To\SillyTavern"
+npm run install-local
+```
+
+If you leave the branch field blank, SillyTavern will use the repository default branch. The default branch is the development repository layout and is not a root-level UI extension package.
+
 ## Confirm SillyTavern Loaded It
 
 After restart:

@@ -4,7 +4,7 @@
 
 **Goal:** Build a private, stable-looking SillyTavern extension that runs a Discord bot, creates Discord forum-thread RP conversations, uses SillyTavern character cards and configured Claude reverse-proxy settings, and saves every conversation back into SillyTavern JSONL chat storage.
 
-**Architecture:** Ship a paired SillyTavern server plugin and UI extension in one private GitHub repo. The server plugin starts the Discord bot, reads SillyTavern user settings and character/chat files, builds Discord-specific prompts, calls the same configured Chat Completion Claude reverse proxy that SillyTavern uses, and persists all messages as normal ST chats. The UI extension provides an ST-native settings panel for bot setup, allowlisting, profiles, diagnostics, and command registration.
+**Architecture:** Ship a paired SillyTavern server plugin and UI extension in one GitHub repo. The server plugin starts the Discord bot, reads SillyTavern user settings and character/chat files, builds Discord-specific prompts, calls the same configured Chat Completion Claude reverse proxy that SillyTavern uses, and persists all messages as normal ST chats. The UI extension provides an ST-native settings panel for bot setup, allowlisting, profiles, diagnostics, and command registration.
 
 **Tech Stack:** Node.js 20+, TypeScript, ESM, discord.js v14, Express router mounted by SillyTavern, Zod, Vitest, Vite, ESLint, Prettier, GitHub Actions.
 
@@ -94,7 +94,7 @@ sillytavern-discord-bridge
 
 Repository settings:
 
-- Visibility: private.
+- Visibility: public is acceptable only after confirming the repository contains no real secrets, private proxy URLs, real character cards, or chat logs. Runtime deployment remains private/local.
 - Default branch: `main`.
 - License: `AGPL-3.0-only`, because this runs inside and imports internals from AGPL SillyTavern.
 - Enable Dependabot alerts and npm ecosystem updates.
@@ -122,7 +122,7 @@ Branch and commit conventions:
 
 Additional repository governance rules:
 
-- This repository must remain **private**.
+- This repository may be public only if it remains sanitized. The deployment, Discord app, ST settings, chat logs, and runtime data must remain private.
 - No secrets may ever be committed. This includes Discord bot tokens, real Discord client/application IDs, real guild IDs, real allowed-user IDs, reverse proxy credentials, SillyTavern settings exports, real character cards, real chat logs, and private proxy URLs.
 - Runtime secrets and machine-local settings must be provided only through local config or environment variables. At minimum, local setup must support:
   - `DISCORD_BOT_TOKEN`
@@ -863,9 +863,9 @@ Create `src/ui-extension/manifest.json`:
   "optional": [],
   "js": "index.js",
   "css": "styles.css",
-  "author": "<private-owner>",
+  "author": "WyrmKeep",
   "version": "0.1.0",
-  "homePage": "https://github.com/<private-owner>/sillytavern-discord-bridge",
+  "homePage": "https://github.com/WyrmKeep/sillytavern-discord-bridge",
   "auto_update": false,
   "minimum_client_version": "1.17.0"
 }
