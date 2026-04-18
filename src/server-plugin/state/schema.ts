@@ -18,7 +18,7 @@ export const conversationStateSchema = z.object({
 
 export const bridgeStateSchema = z.object({
   version: z.literal(1),
-  conversations: z.record(conversationStateSchema),
+  conversations: z.record(z.string(), conversationStateSchema),
 });
 
 export type ConversationState = z.infer<typeof conversationStateSchema>;
