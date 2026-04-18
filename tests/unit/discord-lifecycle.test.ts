@@ -5,7 +5,7 @@ import {
 } from '../../src/server-plugin/discord/lifecycle.js';
 import { parseBridgeConfig, type DiscordBridgeConfig } from '../../src/server-plugin/config/schema.js';
 
-function enabledConfig(enabled: boolean): DiscordBridgeConfig {
+function enabledConfig(enabled: boolean, overrides: Partial<DiscordBridgeConfig['discord']> = {}): DiscordBridgeConfig {
   return parseBridgeConfig({
     version: 1,
     enabled,
@@ -17,6 +17,7 @@ function enabledConfig(enabled: boolean): DiscordBridgeConfig {
       createForumIfMissing: false,
       forumName: 'SillyTavern',
       defaultForumTagIds: [],
+      ...overrides,
     },
     access: {
       allowlistedUserIds: [],
@@ -92,6 +93,7 @@ describe('Discord bot lifecycle', () => {
       createClient: () => client,
       readConfig: async () => enabledConfig(true),
       readSecrets: async () => ({ discordBotToken: 'token' }),
+      registerCommands: async () => undefined,
     });
 
     const status = await runtime.reconcile();
@@ -100,6 +102,73 @@ describe('Discord bot lifecycle', () => {
     expect(status.state).toBe('ready');
     expect(status.ready).toBe(true);
     expect(status.userTag).toBe('Bridge#0001');
+  });
+
+  test('registers guild slash commands before reporting ready', async () => {
+    const client = fakeClient();
+    const registerCommands = vi.fn(async () => undefined);
+    const runtime = createDiscordBotRuntime({
+      createClient: () => client,
+      readConfig: async () => enabledConfig(true),
+      readSecrets: async () => ({ discordBotToken: 'token' }),
+      registerCommands,
+    });
+
+    const status = await runtime.reconcile();
+
+    expect(registerCommands).toHaveBeenCalledWith({
+      token: 'token',
+      clientId: '123',
+      guildId: '456',
+    });
+    expect(status.state).toBe('ready');
+  });
+
+  test('re-registers guild slash commands when the target guild changes', async () => {
+    let guildId = '456';
+    const client = fakeClient();
+    const registerCommands = vi.fn(async () => undefined);
+    const runtime = createDiscordBotRuntime({
+      createClient: () => client,
+      readConfig: async () => enabledConfig(true, { guildId }),
+      readSecrets: async () => ({ discordBotToken: 'token' }),
+      registerCommands,
+    });
+
+    await runtime.reconcile();
+    guildId = '999';
+    await runtime.reconcile();
+
+    expect(client.login).toHaveBeenCalledTimes(1);
+    expect(registerCommands).toHaveBeenCalledTimes(2);
+    expect(registerCommands).toHaveBeenLastCalledWith({
+      token: 'token',
+      clientId: '123',
+      guildId: '999',
+    });
+  });
+
+  test('recovers status after command registration fails and later succeeds', async () => {
+    const client = fakeClient();
+    let shouldFail = true;
+    const runtime = createDiscordBotRuntime({
+      createClient: () => client,
+      readConfig: async () => enabledConfig(true),
+      readSecrets: async () => ({ discordBotToken: 'token' }),
+      registerCommands: async () => {
+        if (shouldFail) {
+          throw new Error('missing applications.commands scope');
+        }
+      },
+    });
+
+    const failed = await runtime.reconcile();
+    shouldFail = false;
+    const recovered = await runtime.reconcile();
+
+    expect(failed.state).toBe('error');
+    expect(recovered.state).toBe('ready');
+    expect(recovered.ready).toBe(true);
   });
 
   test('restarts the client when the saved token changes', async () => {
@@ -113,6 +182,7 @@ describe('Discord bot lifecycle', () => {
       createClient,
       readConfig: async () => enabledConfig(true),
       readSecrets: async () => ({ discordBotToken: token }),
+      registerCommands: async () => undefined,
     });
 
     await runtime.reconcile();
@@ -129,6 +199,7 @@ describe('Discord bot lifecycle', () => {
       createClient: () => client,
       readConfig: async () => enabledConfig(true),
       readSecrets: async () => ({ discordBotToken: 'token' }),
+      registerCommands: async () => undefined,
     });
 
     await runtime.reconcile();
